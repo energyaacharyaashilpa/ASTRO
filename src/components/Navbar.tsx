@@ -100,7 +100,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="md:hidden glass-panel border-t border-gold-subtle/50 py-4 px-6 absolute top-full left-0 w-full shadow-lg transition-all duration-300">
+        <div className="md:hidden glass-panel bg-white border-t border-gold-subtle/50 py-4 px-6 absolute top-full left-0 w-full shadow-lg transition-all duration-300">
           <div className="flex flex-col space-y-4">
             <button
               onClick={() => handleNavClick("problems")}

@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Award, BookOpen, ShieldCheck, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import AstroLogo from "../assets/astro.webp";
 
 export default function AboutExpert() {
   return (
@@ -27,7 +28,7 @@ export default function AboutExpert() {
               {/* Image Frame */}
               <div className="relative rounded-2xl overflow-hidden border-[6px] border-white shadow-2xl max-w-sm sm:max-w-md">
                 <img
-                  src="/expert-portrait.png"
+                  src={AstroLogo}
                   alt="Energy Acharya Shilpa - Astro Vastu Expert"
                   className="w-full h-auto object-cover transform hover:scale-[1.03] transition-transform duration-500"
                 />

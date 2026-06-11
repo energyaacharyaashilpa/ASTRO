@@ -1,34 +1,24 @@
 # Google Sheets Setup Guide
 
-## Root cause of the sheet-not-updating bug
-
-The Apps Script uses `getSheetByName("Astro Vastu Leads")` but your actual sheet **tab name**
-(shown at the bottom of the spreadsheet) is most likely still `Sheet1`.  
-`getSheetByName` returns `null` when the name doesn't match → `appendRow` throws → data is lost silently.
-
-**The updated script below uses a safe fallback**: if the named tab isn't found, it writes to the first tab automatically.
-
----
-
 ## Why GET and not POST?
 
 Google Apps Script does not support CORS preflight (OPTIONS). Any `fetch()` with
 `Content-Type: application/json` triggers a preflight → Google blocks it with 401.
-The only browser-safe solution: **send data as GET query parameters**.
-GET requests never trigger a preflight.
+Solution: **send data as GET query parameters** — no preflight, always works.
 
 ---
 
-## Step 1 — Set up the Google Sheet
+## Step 1 — Create the Google Sheet
 
 1. Go to [sheets.google.com](https://sheets.google.com) → **New Spreadsheet**.
-2. Rename the spreadsheet title to anything you like (e.g. `Astro Vastu Leads`).
-3. Look at the **tab at the bottom** — it's probably called `Sheet1`. Leave it as is.
-4. In **Row 1**, add these headers:
+2. Name the spreadsheet (e.g. `Astro Vastu Leads`).
+3. In **Row 1**, add these exact headers in order:
 
-| A | B | C | D | E | F | G | H | I | J | K | L | M |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Timestamp | Session Key | Name | Mobile | Profession | Email | City | DOB | Birth Time | Birth Place | Issues | Payment Status | Transaction ID |
+| A | B | C | D | E | F | G | H | I | J | K | L | M | N | O |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Timestamp | Session Key | Name | Mobile | Profession | Email | City | DOB | Birth Time | Birth Place | Issue 1 | Issue 2 | Issue 3 | Payment Status | Transaction ID |
+
+> ⚠️ **15 columns total.** The script writes by column position, so the order must match exactly.
 
 ---
 
@@ -40,17 +30,17 @@ GET requests never trigger a preflight.
 ```javascript
 // ============================================================
 //  Energy Acharya Shilpa — Google Apps Script Webhook
-//  Uses doGet() — no CORS preflight, always works from browser.
+//  Uses doGet() — no CORS preflight, works from any browser.
+//  Issues are split into 3 separate fields: issue1, issue2, issue3
 // ============================================================
 
-// ⚠️ Set this to the TAB NAME shown at the bottom of your sheet.
-// Default is "Sheet1". The script falls back to the first tab if not found.
+// ⚠️ Must match the TAB NAME at the bottom of your sheet exactly.
 const SHEET_NAME = "Sheet1";
 
 function doGet(e) {
   try {
     const action = e.parameter.action;
-    if (action === "createLead")   return createLead(e.parameter);
+    if (action === "createLead")    return createLead(e.parameter);
     if (action === "updatePayment") return updatePayment(e.parameter);
     return response("error", "Unknown action: " + action);
   } catch (err) {
@@ -58,10 +48,7 @@ function doGet(e) {
   }
 }
 
-// Accept POST too (some environments send POST)
-function doPost(e) {
-  return doGet(e);
-}
+function doPost(e) { return doGet(e); }
 
 // Safe sheet getter — falls back to first tab if name doesn't match
 function getSheet() {
@@ -72,7 +59,7 @@ function getSheet() {
 function createLead(p) {
   const sheet = getSheet();
   sheet.appendRow([
-    new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }), // A
+    new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }), // A: Timestamp
     p.sessionKey  || "",  // B: Session Key
     p.name        || "",  // C: Name
     p.mobile      || "",  // D: Mobile
@@ -82,9 +69,11 @@ function createLead(p) {
     p.dob         || "",  // H: DOB
     p.birthTime   || "",  // I: Birth Time
     p.birthPlace  || "",  // J: Birth Place
-    p.issues      || "",  // K: Issues
-    "Pending",            // L: Payment Status
-    "",                   // M: Transaction ID
+    p.issue1      || "",  // K: Issue 1
+    p.issue2      || "",  // L: Issue 2
+    p.issue3      || "",  // M: Issue 3
+    "Pending",            // N: Payment Status
+    "",                   // O: Transaction ID
   ]);
   return response("ok", "Lead saved: " + (p.sessionKey || "no-key"));
 }
@@ -93,9 +82,9 @@ function updatePayment(p) {
   const sheet = getSheet();
   const data  = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
-    if (data[i][1] === p.sessionKey) {           // column B = Session Key
-      sheet.getRange(i + 1, 12).setValue(p.status        || "Unknown");
-      sheet.getRange(i + 1, 13).setValue(p.transactionId || "");
+    if (data[i][1] === p.sessionKey) {         // column B = Session Key
+      sheet.getRange(i + 1, 14).setValue(p.status        || "Unknown"); // col N
+      sheet.getRange(i + 1, 15).setValue(p.transactionId || "");        // col O
       return response("ok", "Payment updated: " + p.sessionKey);
     }
   }
@@ -113,24 +102,23 @@ function response(status, message) {
 
 ---
 
-## Step 3 — Deploy as Web App (must do this after every code change)
+## Step 3 — Deploy as Web App
 
 1. Click **Deploy → New Deployment**.
-2. Click the ⚙ gear → **Web App**.
+2. Click ⚙ gear → **Web App**.
 3. Set:
    - **Execute as**: Me
    - **Who has access**: **Anyone** ← not "Anyone with Google account"
 4. Click **Deploy** → authorize → copy the Web App URL.
 
-> ⚠️ You must always create a **New Deployment** after changing code.
-> Editing and saving the script alone does NOT update the live endpoint.
+> ⚠️ You must create a **New Deployment** every time you change the script code.
 
 ---
 
 ## Step 4 — Update .env
 
 ```env
-VITE_GOOGLE_SCRIPT_URL=https://script.google.com/macros/s/YOUR_NEW_ID/exec
+VITE_GOOGLE_SCRIPT_URL=https://script.google.com/macros/s/YOUR_ID/exec
 VITE_RAZORPAY_KEY_ID=rzp_test_XXXXXXXXXXXXXXXX
 ```
 
@@ -138,43 +126,48 @@ Restart `npm run dev` after saving.
 
 ---
 
-## Step 5 — Test it
+## Step 5 — Test
 
-Open a terminal and run this curl command (replace the URL with yours):
+Run in your terminal (replace the URL):
 
 ```bash
-curl "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec?action=createLead&sessionKey=TEST-001&name=TestUser&mobile=9999999999&profession=Tester&email=test@test.com&city=Mumbai&dob=2000-01-01&birthTime=12:00&birthPlace=Pune&issues=Test"
+curl "YOUR_SCRIPT_URL?action=createLead&sessionKey=TEST-001&name=Test&mobile=9999999999&profession=Dev&email=t@t.com&city=Mumbai&dob=2000-01-01&birthTime=12:00&birthPlace=Pune&issue1=Business+stagnation&issue2=Marriage+conflict&issue3=Lack+of+focus"
 ```
 
-Expected response:
-```json
-{"status":"ok","message":"Lead saved: TEST-001"}
-```
+Expected: `{"status":"ok","message":"Lead saved: TEST-001"}`
+Then check your sheet — a new row with 3 issue columns and `Payment Status = Pending`.
 
-Then check your sheet — a new row should appear with `Payment Status = Pending`.
+---
+
+## Column Map
+
+| Col | Header | Source |
+|-----|--------|--------|
+| A | Timestamp | Auto-generated |
+| B | Session Key | Frontend generated ID |
+| C | Name | Form field |
+| D | Mobile | Form field |
+| E | Profession | Form field |
+| F | Email | Form field |
+| G | City | Form field |
+| H | DOB | Form field |
+| I | Birth Time | Form field |
+| J | Birth Place | Form field |
+| K | Issue 1 | Form field (issue1) |
+| L | Issue 2 | Form field (issue2) |
+| M | Issue 3 | Form field (issue3) |
+| N | Payment Status | Updated after Razorpay |
+| O | Transaction ID | Updated after Razorpay |
 
 ---
 
 ## Troubleshooting
 
-### `TypeError: Cannot read properties of null (reading 'appendRow')`
-The tab name in `SHEET_NAME` doesn't match your actual sheet tab.
-- Look at the tab name at the **bottom** of your Google Sheet
-- Update `const SHEET_NAME = "Sheet1"` to match exactly (case-sensitive)
-- Create a **New Deployment** after saving
-
-### Sheet gets no data at all
-Your script is still the old version (with `doPost` only, no `doGet`).
-Delete all code, paste the new script above, save, and create a **New Deployment**.
+### `Cannot read properties of null (reading 'appendRow')`
+Tab name doesn't match `SHEET_NAME`. Look at the tab at the bottom of your sheet and update the constant. Create a **New Deployment** after saving.
 
 ### 401 Unauthorized
-"Who has access" is set to "Anyone with Google account" instead of "Anyone".
-Create a new deployment with the correct setting.
+"Who has access" is "Anyone with Google account" instead of "Anyone". Create a new deployment with the correct setting.
 
-### Payment Status never updates
-The `sessionKey` must match column B exactly.
-Check Apps Script → **Executions** (left sidebar) for `"Session key not found"` errors.
-
-### Razorpay favicon errors on localhost
-Expected — Razorpay's servers can't reach `localhost`.
-This is cosmetic and doesn't affect payment processing. It goes away on a live domain.
+### Payment Status not updating
+Check Apps Script → **Executions** for `"Session key not found"` errors. The sessionKey must match column B exactly.

@@ -1,18 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles, Calendar, Clock, MapPin, User,
   Mail, Phone, Briefcase, FileText,
-  CheckCircle2, AlertCircle, X, ShieldCheck,
+  CheckCircle2, AlertCircle, X, ArrowRight,
+  HelpCircle, Plus, Minus, ShieldCheck,
 } from "lucide-react";
 
 import { saveLead, updatePaymentStatus } from "../services/leadService";
 import { openRazorpayCheckout, generateMockTransactionId } from "../services/paymentService";
+import { reviews, TestimonialCard } from "../components/Testimonials";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
 interface FormData {
   name: string;
   mobile: string;
@@ -22,34 +23,63 @@ interface FormData {
   dob: string;
   birthTime: string;
   birthPlace: string;
-  issues: string;
+  issue1: string;
+  issue2: string;
+  issue3: string;
 }
 
 const EMPTY_FORM: FormData = {
   name: "", mobile: "", profession: "", email: "",
-  city: "", dob: "", birthTime: "", birthPlace: "", issues: "",
+  city: "", dob: "", birthTime: "", birthPlace: "",
+  issue1: "", issue2: "", issue3: "",
 };
+
+const faqs = [
+  {
+    q: "Do your remedies require structural demolition or breaking walls?",
+    a: "Absolutely not. We have a strict 'Zero Demolition' policy. Our Astro Vastu remedies are non-destructive and utilize scientific elements: elemental metal strips (copper, brass, lead, iron), color spectrum therapy, precise object relocation, and planetary crystals to re-tune your home's frequency.",
+  },
+  {
+    q: "How does Astro Vastu differ from standard Vastu Shastra?",
+    a: "Standard Vastu applies generalized rules (e.g., 'North is always positive for wealth'). Astro Vastu is highly personalized. If your birth chart (Kundli) shows Mercury is in your 12th house (expenditures), activating the North (governed by Mercury) without chart alignment can actually double your losses. We match your home layout specifically to your horoscope.",
+  },
+  {
+    q: "What birth details are required for the consultation?",
+    a: "To construct your cosmic chart, we require your Full Name, Date of Birth, Time of Birth, and Place of Birth. You will also need to submit a rough sketch/layout map of your house or office, showing the directions.",
+  },
+  {
+    q: "How soon can I expect to notice changes?",
+    a: "Most clients report an immediate shift in the house's atmosphere (feelings of lightness, less stress) within 7–10 days. Physical breakthroughs in career, court cases, cash blockages, or relationship harmony typically manifest between 21 to 45 days after completing the remedies.",
+  },
+  {
+    q: "Does Astro Vastu work for rented apartments or offices?",
+    a: "Yes. Vastu energy affects whoever occupies the space, regardless of ownership. Since our remedies involve simple color adjustments, metal wires, or placing objects, they are completely portable and easy to implement in rented properties without modifying the landlord's structure.",
+  },
+];
+
+// Shared input class
+const inputCls = "w-full px-4 py-3 rounded-xl border border-gold-400/20 bg-gold-50/10 focus:bg-white focus:outline-none focus:border-gold-400 transition-colors text-sm text-gold-950 font-light";
+const labelCls = "text-xs font-semibold text-gold-900 uppercase tracking-wider flex items-center gap-1.5";
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
-
 export default function Join() {
+  const formRef = useRef<HTMLDivElement>(null);
+
   const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [sessionKey, setSessionKey] = useState<string>("");
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
-  // Modal visibility
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showFailedModal, setShowFailedModal] = useState(false);
   const [showMockPaymentDialog, setShowMockPaymentDialog] = useState(false);
-
   const [transactionDetails, setTransactionDetails] = useState({ id: "", amount: "₹4,999" });
 
-  // -------------------------------------------------------------------------
-  // Handlers
-  // -------------------------------------------------------------------------
+  const scrollToForm = () =>
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -61,25 +91,15 @@ export default function Join() {
     setLoading(true);
     setStatusMessage("Capturing cosmic details...");
 
-    // 1. Save lead to Google Sheets via leadService
     const key = await saveLead(formData);
     setSessionKey(key);
-
     setStatusMessage("Opening Razorpay Checkout...");
 
-    // 2. Open Razorpay checkout via paymentService
     const result = await openRazorpayCheckout({
-      amountInPaise: 499900, // ₹4,999
+      amountInPaise: 499900,
       description: "Premium Consultation & Remedies Blueprint",
-      prefill: {
-        name: formData.name,
-        email: formData.email,
-        contact: formData.mobile,
-      },
-      notes: {
-        dob: formData.dob,
-        birthTime: formData.birthTime,
-      },
+      prefill: { name: formData.name, email: formData.email, contact: formData.mobile },
+      notes: { dob: formData.dob, birthTime: formData.birthTime },
       onSuccess: async (paymentId) => {
         setTransactionDetails({ id: paymentId, amount: "₹4,999" });
         await updatePaymentStatus(key, "Paid", paymentId);
@@ -93,220 +113,420 @@ export default function Join() {
 
     setLoading(false);
     setStatusMessage("");
-
-    // 3. Fall back to mock UI if Razorpay SDK is unavailable / key not set
-    if (!result.launched) {
-      setShowMockPaymentDialog(true);
-    }
+    if (!result.launched) setShowMockPaymentDialog(true);
   };
 
-  // Mock payment actions (sandbox / dev only)
   const handleMockPaymentResult = async (status: "Paid" | "Failed") => {
     setShowMockPaymentDialog(false);
     const mockTxId = status === "Paid" ? generateMockTransactionId() : "";
     setTransactionDetails({ id: mockTxId, amount: "₹4,999" });
-
-    if (sessionKey) {
-      await updatePaymentStatus(sessionKey, status, mockTxId);
-    }
-
-    if (status === "Paid") {
-      setShowSuccessModal(true);
-    } else {
-      setShowFailedModal(true);
-    }
+    if (sessionKey) await updatePaymentStatus(sessionKey, status, mockTxId);
+    if (status === "Paid") setShowSuccessModal(true);
+    else setShowFailedModal(true);
   };
 
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // Render
-  // -------------------------------------------------------------------------
-
+  // ---------------------------------------------------------------------------
   return (
-    <div className="relative min-h-screen pt-28 pb-20 bg-luxury-gradient overflow-hidden">
-      {/* Decorative geometric rings */}
-      <div className="absolute top-[10%] left-[-5%] w-72 h-72 border border-gold-300/10 rounded-full pointer-events-none" />
-      <div className="absolute bottom-[10%] right-[-5%] w-96 h-96 border border-gold-300/10 rounded-full pointer-events-none animate-pulse" />
+    <div className="relative bg-luxury-gradient overflow-hidden">
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-12">
+      {/* ══════════════════════════════════════════════════════════════
+          SECTION 1 — VIDEO
+      ══════════════════════════════════════════════════════════════ */}
+      <section className="relative min-h-screen flex flex-col items-center justify-center pt-28 pb-20 px-4 sm:px-6 lg:px-8">
+        {/* Decorative rings */}
+        <div className="absolute top-[10%] left-[-5%] w-72 h-72 border border-gold-300/10 rounded-full pointer-events-none" />
+        <div className="absolute bottom-[10%] right-[-5%] w-96 h-96 border border-gold-300/10 rounded-full pointer-events-none animate-pulse" />
 
-        {/* Page Header */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center space-x-2 bg-gold-50/70 border border-gold-300/30 px-4 py-1 rounded-full">
-            <span className="text-[10px] font-bold tracking-widest text-gold-700 uppercase">
-              Secure Consultation Portal
-            </span>
-          </div>
-          <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-gold-900 leading-tight">
-            Claim Your Astro Vastu Consultation
-          </h1>
-          <p className="text-xs sm:text-sm text-gold-900/60 max-w-xl mx-auto font-light">
-            Fill in your astrological coordinates below to secure your 1-on-1 analysis
-            blueprint with Energy Acharya Shilpa.
-          </p>
-        </div>
+        <div className="max-w-4xl w-full mx-auto space-y-10 relative z-10">
 
-        {/* VSL Video */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          className="relative rounded-3xl overflow-hidden border border-gold-400/30 shadow-2xl glass-panel p-2 sm:p-4 bg-white"
-        >
-          <div className="relative aspect-video rounded-2xl overflow-hidden bg-black shadow-inner group">
-            <iframe
-              src="https://player.vimeo.com/video/911802958?h=2540c74900&title=0&byline=0&portrait=0"
-              title="Astro Vastu VSL"
-              className="absolute inset-0 w-full h-full"
-              allow="autoplay; fullscreen; picture-in-picture"
-              allowFullScreen
-            />
-            <div className="absolute inset-0 border border-white/10 rounded-xl pointer-events-none group-hover:border-gold-400/20 transition-colors" />
-          </div>
-          <div className="text-center pt-3 pb-1">
-            <p className="text-xs text-gold-800 font-medium tracking-wide">
-              WATCH: How standard Vastu remedies might conflict with your Horoscope (10 Mins)
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            className="text-center space-y-4"
+          >
+            
+            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-gold-900 leading-tight">
+              Claim Your Astro Vastu Consultation
+            </h1>
+            <p className="text-sm text-gold-900/60 max-w-xl mx-auto font-light">
+              Watch how your birth chart and living space are silently working against each other —
+              and how Energy Acharya Shilpa fixes it without breaking a single wall.
             </p>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        {/* Consultation Form */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.1 }}
-          className="p-6 sm:p-10 rounded-3xl border border-gold-400/25 glass-card bg-white shadow-xl space-y-8"
-        >
-          <div className="border-b border-gold-50 pb-6 text-center sm:text-left">
-            <h2 className="font-serif text-xl sm:text-2xl font-semibold text-gold-900">
+          {/* Video */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.15 }}
+            className="rounded-3xl overflow-hidden border border-gold-400/30 shadow-2xl glass-panel p-2 sm:p-4 bg-white"
+          >
+            <div className="relative aspect-video rounded-2xl overflow-hidden bg-black shadow-inner group">
+              <iframe
+                src="https://player.vimeo.com/video/911802958?h=2540c74900&title=0&byline=0&portrait=0"
+                title="Astro Vastu VSL"
+                className="absolute inset-0 w-full h-full"
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowFullScreen
+              />
+              <div className="absolute inset-0 border border-white/10 rounded-xl pointer-events-none group-hover:border-gold-400/20 transition-colors" />
+            </div>
+            <div className="text-center pt-3 pb-1">
+              <p className="text-xs text-gold-800 font-medium tracking-wide">
+                WATCH: How standard Vastu remedies might conflict with your Horoscope (10 Mins)
+              </p>
+            </div>
+          </motion.div>
+
+          {/* CTA below video */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="text-center space-y-3"
+          >
+            <button
+              onClick={scrollToForm}
+              className="inline-flex items-center gap-2 px-10 py-4 bg-gold-500 hover:bg-gold-600 text-white rounded-full font-bold tracking-widest text-xs uppercase shadow-[0_10px_30px_rgba(197,145,84,0.35)] hover:shadow-[0_12px_36px_rgba(197,145,84,0.5)] transition-all duration-300 border border-gold-400 hover:scale-[1.03] group cursor-pointer"
+            >
+              <span>Join Now</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+            
+          </motion.div>
+
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════
+          SECTION 2 — TESTIMONIALS
+      ══════════════════════════════════════════════════════════════ */}
+      <section className="py-24 bg-white relative overflow-hidden border-t border-gold-subtle/30">
+        <div className="absolute top-10 left-10 w-48 h-48 border border-gold-300/10 rounded-full pointer-events-none" />
+        <div className="absolute bottom-10 right-10 w-64 h-64 border border-gold-300/10 rounded-full pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center max-w-3xl mx-auto space-y-4 mb-16"
+          >
+            <div className="inline-flex items-center space-x-2 border-b border-gold-400/30 pb-2">
+              <span className="text-[11px] font-semibold tracking-widest text-gold-700 uppercase">
+                Proven Transformations
+              </span>
+            </div>
+            <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-gold-900 leading-tight">
+              Real Clients. Measurable Miracles.
+            </h2>
+            <p className="text-sm sm:text-base text-gold-900/60 font-light max-w-2xl mx-auto">
+              Read how correcting directional flaws and aligning them with individual charts created immediate breakthroughs.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {reviews.map((rev, idx) => (
+              <TestimonialCard key={idx} rev={rev} idx={idx} animate={true} />
+            ))}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="mt-16 text-center"
+          >
+            <button
+              onClick={scrollToForm}
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gold-500 hover:bg-gold-600 text-white rounded-full font-bold tracking-widest text-xs uppercase shadow-[0_8px_24px_rgba(197,145,84,0.3)] hover:shadow-[0_10px_30px_rgba(197,145,84,0.45)] transition-all duration-300 border border-gold-400 hover:scale-[1.03] group cursor-pointer"
+            >
+              <span>Join Now</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </motion.div>
+
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════
+          SECTION 3 — FAQ
+      ══════════════════════════════════════════════════════════════ */}
+      <section className="py-24 bg-gold-50/20 relative overflow-hidden border-t border-gold-subtle/30">
+        <div className="absolute left-[-10%] top-[30%] w-72 h-72 border border-gold-300/10 rounded-full pointer-events-none" />
+        <div className="absolute right-[-10%] bottom-[20%] w-96 h-96 border border-gold-300/10 rounded-full pointer-events-none" />
+
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center max-w-3xl mx-auto space-y-4 mb-16"
+          >
+            <div className="inline-flex items-center space-x-2 border-b border-gold-400/30 pb-2">
+              <HelpCircle className="w-4 h-4 text-gold-500" />
+              <span className="text-[11px] font-semibold tracking-widest text-gold-700 uppercase">
+                Got Questions?
+              </span>
+            </div>
+            <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-gold-900 leading-tight">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-sm sm:text-base text-gold-900/60 font-light">
+              Everything you need to know about the science of Astro Vastu and the consultation process.
+            </p>
+          </motion.div>
+
+          <div className="space-y-4">
+            {faqs.map((faq, idx) => {
+              const isOpen = activeFaq === idx;
+              return (
+                <div key={idx} className="bg-white border border-gold-400/15 rounded-2xl overflow-hidden hover:border-gold-400/35 shadow-sm transition-colors duration-300">
+                  <button
+                    onClick={() => setActiveFaq(isOpen ? null : idx)}
+                    className="w-full text-left p-6 sm:p-8 flex justify-between items-center gap-4 cursor-pointer focus:outline-none"
+                  >
+                    <span className="font-serif text-base sm:text-lg font-medium text-gold-900 pr-2">{faq.q}</span>
+                    <div className="w-8 h-8 rounded-full bg-gold-50 border border-gold-400/20 flex items-center justify-center flex-shrink-0">
+                      {isOpen
+                        ? <Minus className="w-4 h-4 text-gold-600" />
+                        : <Plus className="w-4 h-4 text-gold-600" />
+                      }
+                    </div>
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.35, ease: "easeInOut" }}
+                      >
+                        <div className="px-6 pb-6 sm:px-8 sm:pb-8 text-xs sm:text-sm text-gold-900/70 font-light leading-relaxed border-t border-gold-50">
+                          {faq.a}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="mt-16 text-center"
+          >
+            
+          </motion.div>
+
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════
+          SECTION 4 — CONSULTATION FORM
+      ══════════════════════════════════════════════════════════════ */}
+      <section
+        ref={formRef}
+        className="py-24 bg-white relative overflow-hidden border-t border-gold-subtle/30 scroll-mt-20"
+      >
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gold-50/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gold-50/20 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center space-y-3 mb-12"
+          >
+            
+            <h2 className="font-serif text-3xl sm:text-4xl text-gold-900 leading-tight">
               Personal Birth Chart & House Coordinates
             </h2>
-            <p className="text-xs text-gold-900/60 mt-1 font-light">
+            <p className="text-sm text-gold-900/60 max-w-xl mx-auto font-light">
               Accuracy in birth time and place is critical for mapping planetary coordinates.
             </p>
-          </div>
+          </motion.div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="p-6 sm:p-10 rounded-3xl border border-gold-400/25 glass-card bg-white shadow-xl"
+          >
+            <form onSubmit={handleSubmit} className="space-y-8">
 
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gold-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-gold-500" /> Full Name
-                </label>
-                <input type="text" name="name" required placeholder="e.g. Shruti Keshav"
-                  value={formData.name} onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gold-400/20 bg-gold-50/10 focus:bg-white focus:outline-none focus:border-gold-400 transition-colors text-sm text-gold-950 font-light" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gold-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-gold-500" /> Mobile Number (WhatsApp)
-                </label>
-                <input type="tel" name="mobile" required placeholder="e.g. +91 98765 43210"
-                  value={formData.mobile} onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gold-400/20 bg-gold-50/10 focus:bg-white focus:outline-none focus:border-gold-400 transition-colors text-sm text-gold-950 font-light" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gold-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Briefcase className="w-3.5 h-3.5 text-gold-500" /> Profession
-                </label>
-                <input type="text" name="profession" required placeholder="e.g. Business Owner / Software Lead"
-                  value={formData.profession} onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gold-400/20 bg-gold-50/10 focus:bg-white focus:outline-none focus:border-gold-400 transition-colors text-sm text-gold-950 font-light" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gold-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-gold-500" /> Email Address
-                </label>
-                <input type="email" name="email" required placeholder="e.g. shruti@example.com"
-                  value={formData.email} onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gold-400/20 bg-gold-50/10 focus:bg-white focus:outline-none focus:border-gold-400 transition-colors text-sm text-gold-950 font-light" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gold-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-gold-500" /> Current City of Residence
-                </label>
-                <input type="text" name="city" required placeholder="e.g. Mumbai"
-                  value={formData.city} onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gold-400/20 bg-gold-50/10 focus:bg-white focus:outline-none focus:border-gold-400 transition-colors text-sm text-gold-950 font-light" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gold-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-gold-500" /> Date of Birth
-                </label>
-                <input type="date" name="dob" required
-                  value={formData.dob} onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gold-400/20 bg-gold-50/10 focus:bg-white focus:outline-none focus:border-gold-400 transition-colors text-sm text-gold-950 font-light" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gold-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-gold-500" /> Time of Birth (Exact)
-                </label>
-                <input type="time" name="birthTime" required
-                  value={formData.birthTime} onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gold-400/20 bg-gold-50/10 focus:bg-white focus:outline-none focus:border-gold-400 transition-colors text-sm text-gold-950 font-light" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gold-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-gold-500" /> Place of Birth (City, State)
-                </label>
-                <input type="text" name="birthPlace" required placeholder="e.g. Pune, Maharashtra"
-                  value={formData.birthPlace} onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gold-400/20 bg-gold-50/10 focus:bg-white focus:outline-none focus:border-gold-400 transition-colors text-sm text-gold-950 font-light" />
-              </div>
-
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-gold-900 uppercase tracking-wider flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-gold-500" />
-                Top 3 Issues You Want To Resolve Through Astro Vastu
-              </label>
-              <textarea name="issues" required rows={4}
-                placeholder="Briefly describe the top 3 blockages you are facing. (e.g. 1. Stagnant business sales, 2. Chronic marriage arguments, 3. Severe lack of clarity and focus)"
-                value={formData.issues} onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl border border-gold-400/20 bg-gold-50/10 focus:bg-white focus:outline-none focus:border-gold-400 transition-colors text-sm text-gold-950 font-light resize-none leading-relaxed" />
-            </div>
-
-            {/* Pricing */}
-            {/* <div className="p-5 rounded-2xl bg-gold-50/40 border border-gold-400/10 flex justify-between items-center">
+              {/* ── Personal Details ── */}
               <div>
-                <p className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Premium Consultation Fee</p>
-                <p className="text-xs text-gold-900/60 font-light">Includes PDF Blueprint & 1 Year Support</p>
-              </div>
-              <div className="text-right">
-                <span className="text-xs text-gold-900/50 line-through pr-2 font-light">₹15,000</span>
-                <span className="font-serif text-2xl font-bold text-gold-900">₹4,999</span>
-                <span className="text-[10px] text-gold-600 block font-medium">All Inclusive</span>
-              </div>
-            </div> */}
+                <p className="text-[10px] font-bold text-gold-600 uppercase tracking-widest mb-5">
+                  Personal Details
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 
-            {/* Submit */}
-            <div className="pt-2">
-              <button type="submit" disabled={loading}
-                className="w-full py-4 bg-gold-500 hover:bg-gold-600 text-white rounded-full font-bold tracking-widest text-xs uppercase shadow-[0_10px_25px_rgba(197,145,84,0.25)] hover:shadow-[0_12px_30px_rgba(197,145,84,0.4)] transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 border border-gold-400 cursor-pointer">
-                {loading ? statusMessage : "Join Now"}
-              </button>
-              <div className="flex justify-center items-center gap-1.5 mt-3 text-[10px] text-gold-900/50 font-light">
-                {/* <ShieldCheck className="w-3.5 h-3.5 text-gold-500" /> */}
-               
-              </div>
-            </div>
-          </form>
-        </motion.div>
-      </div>
+                  <div className="space-y-2">
+                    <label className={labelCls}>
+                      <User className="w-3.5 h-3.5 text-gold-500" /> Full Name
+                    </label>
+                    <input type="text" name="name" required placeholder="e.g. Shruti Keshav"
+                      value={formData.name} onChange={handleChange} className={inputCls} />
+                  </div>
 
-      {/* ====================================================================
+                  <div className="space-y-2">
+                    <label className={labelCls}>
+                      <Phone className="w-3.5 h-3.5 text-gold-500" /> Mobile (WhatsApp)
+                    </label>
+                    <input type="tel" name="mobile" required placeholder="e.g. +91 98765 43210"
+                      value={formData.mobile} onChange={handleChange} className={inputCls} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className={labelCls}>
+                      <Briefcase className="w-3.5 h-3.5 text-gold-500" /> Profession
+                    </label>
+                    <input type="text" name="profession" required placeholder="e.g. Business Owner"
+                      value={formData.profession} onChange={handleChange} className={inputCls} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className={labelCls}>
+                      <Mail className="w-3.5 h-3.5 text-gold-500" /> Email Address
+                    </label>
+                    <input type="email" name="email" required placeholder="e.g. you@example.com"
+                      value={formData.email} onChange={handleChange} className={inputCls} />
+                  </div>
+
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className={labelCls}>
+                      <MapPin className="w-3.5 h-3.5 text-gold-500" /> Current City of Residence
+                    </label>
+                    <input type="text" name="city" required placeholder="e.g. Mumbai"
+                      value={formData.city} onChange={handleChange} className={inputCls} />
+                  </div>
+
+                </div>
+              </div>
+
+              <div className="gold-divider" />
+
+              {/* ── Birth Details ── */}
+              <div>
+                <p className="text-[10px] font-bold text-gold-600 uppercase tracking-widest mb-5">
+                  Birth Details
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+                  <div className="space-y-2">
+                    <label className={labelCls}>
+                      <Calendar className="w-3.5 h-3.5 text-gold-500" /> Date of Birth
+                    </label>
+                    <input type="date" name="dob" required
+                      value={formData.dob} onChange={handleChange} className={inputCls} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className={labelCls}>
+                      <Clock className="w-3.5 h-3.5 text-gold-500" /> Time of Birth (Exact)
+                    </label>
+                    <input type="time" name="birthTime" required
+                      value={formData.birthTime} onChange={handleChange} className={inputCls} />
+                  </div>
+
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className={labelCls}>
+                      <MapPin className="w-3.5 h-3.5 text-gold-500" /> Place of Birth (City, State)
+                    </label>
+                    <input type="text" name="birthPlace" required placeholder="e.g. Pune, Maharashtra"
+                      value={formData.birthPlace} onChange={handleChange} className={inputCls} />
+                  </div>
+
+                </div>
+              </div>
+
+              <div className="gold-divider" />
+
+              {/* ── 3 Issues ── */}
+              <div>
+                <p className="text-[10px] font-bold text-gold-600 uppercase tracking-widest mb-1">
+                  Your Top 3 Challenges
+                </p>
+                <p className="text-xs text-gold-900/50 font-light mb-5">
+                  Describe each blockage in one line so Energy Acharya Shilpa can map them to your chart.
+                </p>
+                <div className="space-y-4">
+
+                  <div className="space-y-2">
+                    <label className={labelCls}>
+                      <FileText className="w-3.5 h-3.5 text-gold-500" />
+                      Issue 1
+                    </label>
+                    <input type="text" name="issue1" required
+                      placeholder="e.g. Stagnant business revenue for 2 years"
+                      value={formData.issue1} onChange={handleChange} className={inputCls} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className={labelCls}>
+                      <FileText className="w-3.5 h-3.5 text-gold-500" />
+                      Issue 2
+                    </label>
+                    <input type="text" name="issue2" required
+                      placeholder="e.g. Chronic arguments with spouse / family"
+                      value={formData.issue2} onChange={handleChange} className={inputCls} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className={labelCls}>
+                      <FileText className="w-3.5 h-3.5 text-gold-500" />
+                      Issue 3
+                    </label>
+                    <input type="text" name="issue3" required
+                      placeholder="e.g. Severe lack of clarity and focus"
+                      value={formData.issue3} onChange={handleChange} className={inputCls} />
+                  </div>
+
+                </div>
+              </div>
+
+             
+
+              {/* ── Pricing ── */}
+            
+
+              {/* ── Submit ── */}
+              <div className="pt-2 space-y-3">
+                <button type="submit" disabled={loading}
+                  className="w-full py-4 bg-gold-500 hover:bg-gold-600 text-white rounded-full font-bold tracking-widest text-sm uppercase shadow-[0_10px_25px_rgba(197,145,84,0.3)] hover:shadow-[0_12px_30px_rgba(197,145,84,0.45)] transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 border border-gold-400 cursor-pointer hover:scale-[1.01]">
+                  {loading ? statusMessage : "Join Now"}
+                </button>
+                
+              </div>
+
+            </form>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ================================================================
           MODALS
-      ==================================================================== */}
+      ================================================================ */}
       <AnimatePresence>
 
-        {/* SUCCESS */}
         {showSuccessModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
@@ -317,7 +537,7 @@ export default function Join() {
               <div className="space-y-2">
                 <h3 className="font-serif text-2xl font-bold text-gold-900">Alignment Initiated!</h3>
                 <p className="text-sm text-gold-900/70 font-light leading-relaxed">
-                  Thank you, <strong>{formData.name}</strong>. Your birth coordinates have been captured and your payment of <strong>{transactionDetails.amount}</strong> is verified.
+                  Thank you, <strong>{formData.name}</strong>. Your payment of <strong>{transactionDetails.amount}</strong> is verified and your slot is confirmed.
                 </p>
               </div>
               <div className="p-4 rounded-2xl bg-gold-50/40 border border-gold-400/10 text-left space-y-2 text-xs">
@@ -326,12 +546,12 @@ export default function Join() {
                   <span className="font-mono text-gold-900 font-semibold">{transactionDetails.id}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gold-900/50">Lead Status:</span>
-                  <span className="font-semibold text-green-700">Paid (Synchronized)</span>
+                  <span className="text-gold-900/50">Status:</span>
+                  <span className="font-semibold text-green-700">Paid ✓</span>
                 </div>
               </div>
               <p className="text-[11px] text-gold-900/50 leading-relaxed font-light">
-                Our support team will email you a consultation confirmation and request your house layout plan in the next 15 minutes.
+                Our team will email a consultation confirmation and house layout request within 15 minutes.
               </p>
               <button onClick={() => { setShowSuccessModal(false); window.location.href = "/"; }}
                 className="w-full py-3.5 bg-gold-500 hover:bg-gold-600 text-white rounded-full text-xs font-bold tracking-widest uppercase transition-colors border border-gold-400 cursor-pointer">
@@ -341,13 +561,11 @@ export default function Join() {
           </div>
         )}
 
-        {/* PAYMENT FAILED */}
         {showFailedModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
               className="bg-white rounded-3xl p-8 max-w-md w-full border border-gold-400/30 text-center space-y-6 shadow-2xl relative">
-              <button onClick={() => setShowFailedModal(false)}
-                className="absolute top-4 right-4 text-gold-900/50 hover:text-gold-900 cursor-pointer">
+              <button onClick={() => setShowFailedModal(false)} className="absolute top-4 right-4 text-gold-900/50 hover:text-gold-900 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
               <div className="mx-auto w-16 h-16 rounded-full bg-red-50 border border-red-400/20 flex items-center justify-center">
@@ -355,29 +573,22 @@ export default function Join() {
               </div>
               <div className="space-y-2">
                 <h3 className="font-serif text-2xl font-bold text-red-900">Payment Unsuccessful</h3>
-                <p className="text-sm text-gold-900/70 font-light leading-relaxed">
-                  The payment was either cancelled or failed to process.
-                </p>
+                <p className="text-sm text-gold-900/70 font-light">The payment was cancelled or failed to process.</p>
               </div>
-              <div className="p-4 rounded-2xl bg-red-50/10 border border-red-400/10 text-left space-y-2 text-xs">
-                <p className="text-[11px] text-red-800/80 font-medium">
-                  NOTE: Your profile details have already been saved. You do not need to re-enter them.
-                </p>
+              <div className="p-4 rounded-2xl bg-red-50/10 border border-red-400/10 text-xs text-left space-y-2">
+                <p className="text-red-800/80 font-medium">Your details are already saved. No need to re-enter them.</p>
                 <div className="flex justify-between border-t border-red-100/30 pt-2">
-                  <span className="text-gold-900/50">Lead Status:</span>
+                  <span className="text-gold-900/50">Status:</span>
                   <span className="font-semibold text-red-600">Pending Payment</span>
                 </div>
               </div>
-              <p className="text-[11px] text-gold-900/50 leading-relaxed font-light">
-                Please try again. We have reserved your slot for the next 24 hours.
-              </p>
               <div className="flex gap-4">
                 <button onClick={() => setShowFailedModal(false)}
-                  className="flex-1 py-3 bg-gold-50 border border-gold-400/30 hover:bg-gold-100/40 text-gold-900 rounded-full text-xs font-bold tracking-widest uppercase transition-colors cursor-pointer">
-                  Retry Payment
+                  className="flex-1 py-3 bg-gold-50 border border-gold-400/30 hover:bg-gold-100/40 text-gold-900 rounded-full text-xs font-bold tracking-widest uppercase cursor-pointer">
+                  Retry
                 </button>
                 <button onClick={() => { setShowFailedModal(false); window.location.href = "/"; }}
-                  className="flex-1 py-3 bg-gold-500 hover:bg-gold-600 text-white rounded-full text-xs font-bold tracking-widest uppercase transition-colors border border-gold-400 cursor-pointer">
+                  className="flex-1 py-3 bg-gold-500 hover:bg-gold-600 text-white rounded-full text-xs font-bold tracking-widest uppercase border border-gold-400 cursor-pointer">
                   Home
                 </button>
               </div>
@@ -385,54 +596,33 @@ export default function Join() {
           </div>
         )}
 
-        {/* MOCK PAYMENT DIALOG (dev / sandbox only) */}
         {showMockPaymentDialog && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
               className="bg-white rounded-3xl p-8 max-w-md w-full border border-gold-400/40 text-center space-y-6 shadow-2xl">
               <div className="flex justify-center items-center space-x-2">
                 <Sparkles className="w-5 h-5 text-gold-500 animate-pulse" />
-                <span className="font-serif text-lg font-bold uppercase tracking-wider text-gold-900">Razorpay Mock Gate</span>
+                <span className="font-serif text-lg font-bold uppercase tracking-wider text-gold-900">Razorpay Sandbox</span>
               </div>
               <div className="gold-divider" />
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-gold-950">Simulating Razorpay Transaction</p>
-                <p className="text-xs text-gold-900/70 font-light leading-relaxed">
-                  A live Razorpay Key ID is not configured. Running in sandbox simulation mode.
-                </p>
-                <div className="bg-gold-50/50 p-4 rounded-xl border border-gold-400/10 text-left text-xs space-y-2.5">
-                  <div className="flex justify-between">
-                    <span className="text-gold-900/50">Consultant:</span>
-                    <span className="font-semibold text-gold-900">Energy Acharya Shilpa</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gold-900/50">Client:</span>
-                    <span className="font-semibold text-gold-900">{formData.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gold-900/50">Email:</span>
-                    <span className="font-semibold text-gold-900">{formData.email}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gold-900/50">Amount:</span>
-                    <span className="font-serif text-sm font-bold text-gold-950">₹4,999</span>
-                  </div>
-                  <div className="flex justify-between border-t border-gold-200/20 pt-2 text-[10px] text-green-700 font-bold uppercase">
-                    <span>Lead Status:</span>
-                    <span>Saved (Pending Payment)</span>
-                  </div>
+              <div className="bg-gold-50/50 p-4 rounded-xl border border-gold-400/10 text-left text-xs space-y-2.5">
+                <div className="flex justify-between">
+                  <span className="text-gold-900/50">Consultant:</span>
+                  <span className="font-semibold text-gold-900">Energy Acharya Shilpa</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-gold-900/50">Client:</span>
+                  <span className="font-semibold text-gold-900">{formData.name}</span>
+                </div>
+               
               </div>
-              <p className="text-[10px] text-gold-900/50 font-light">
-                Simulate a payment result below.
-              </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <button onClick={() => handleMockPaymentResult("Paid")}
-                  className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-full text-xs font-bold tracking-widest uppercase transition-colors shadow-md cursor-pointer">
+                  className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-full text-xs font-bold tracking-widest uppercase shadow-md cursor-pointer">
                   Simulate Success
                 </button>
                 <button onClick={() => handleMockPaymentResult("Failed")}
-                  className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-full text-xs font-bold tracking-widest uppercase transition-colors shadow-md cursor-pointer">
+                  className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-full text-xs font-bold tracking-widest uppercase shadow-md cursor-pointer">
                   Simulate Failure
                 </button>
               </div>

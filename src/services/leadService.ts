@@ -1,17 +1,8 @@
 /**
  * leadService.ts
  *
- * Google Apps Script does NOT support CORS preflight (OPTIONS).
- * Any fetch() with Content-Type: application/json triggers a preflight → blocked.
- *
- * The only browser-safe approach that actually writes to Sheets:
- *   - Use GET requests with data encoded as URL search params.
- *   - Apps Script's doGet() receives them via e.parameter and writes the row.
- *   - GET requests never trigger a preflight → no CORS issue.
- *
- * Limitation: GET responses are still cross-origin, so we use no-cors mode
- * and cannot read the rowId back. We store a local incrementing ID instead
- * to correlate the lead row for the payment update.
+ * Uses GET requests with URL params — CORS-safe with Google Apps Script.
+ * Issues are split into three separate fields: issue1, issue2, issue3.
  */
 
 const GOOGLE_SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL as string | undefined;
@@ -25,7 +16,9 @@ export interface LeadPayload {
   dob: string;
   birthTime: string;
   birthPlace: string;
-  issues: string;
+  issue1: string;
+  issue2: string;
+  issue3: string;
 }
 
 export type PaymentStatus = "Paid" | "Failed";
@@ -33,15 +26,7 @@ export type PaymentStatus = "Paid" | "Failed";
 // ---------------------------------------------------------------------------
 // saveLead
 // ---------------------------------------------------------------------------
-
-/**
- * Appends a new lead row to Google Sheets using a GET request (CORS-safe).
- * Returns a locally-generated session key that is passed back to the sheet
- * via the payment update so the script can match the row.
- */
 export async function saveLead(payload: LeadPayload): Promise<string> {
-  // Generate a short unique key — sent as a param so the sheet can store it
-  // and we can reference it when updating payment status.
   const sessionKey = _generateSessionKey();
 
   if (!GOOGLE_SCRIPT_URL) {
@@ -60,11 +45,12 @@ export async function saveLead(payload: LeadPayload): Promise<string> {
     dob: payload.dob,
     birthTime: payload.birthTime,
     birthPlace: payload.birthPlace,
-    issues: payload.issues,
+    issue1: payload.issue1,
+    issue2: payload.issue2,
+    issue3: payload.issue3,
   });
 
   try {
-    // no-cors GET — fires and forgets, never blocked by preflight
     await fetch(`${GOOGLE_SCRIPT_URL}?${params.toString()}`, {
       method: "GET",
       mode: "no-cors",
@@ -80,11 +66,6 @@ export async function saveLead(payload: LeadPayload): Promise<string> {
 // ---------------------------------------------------------------------------
 // updatePaymentStatus
 // ---------------------------------------------------------------------------
-
-/**
- * Updates the Payment Status column for the row matching sessionKey.
- * Also uses a GET request for the same CORS reason.
- */
 export async function updatePaymentStatus(
   sessionKey: string,
   status: PaymentStatus,
@@ -116,50 +97,32 @@ export async function updatePaymentStatus(
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
 function _generateSessionKey(): string {
   const ts = Date.now().toString(36).toUpperCase();
   const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `LEAD-${ts}-${rand}`;
 }
 
-// ---------------------------------------------------------------------------
-// Debug helper — call this from the browser console to verify connectivity:
-//   import('/src/services/leadService.ts').then(m => m.testSheetConnection())
-// ---------------------------------------------------------------------------
+// Debug helper — paste in browser console:
+// import('/src/services/leadService.ts').then(m => m.testSheetConnection())
 export async function testSheetConnection(): Promise<void> {
   if (!GOOGLE_SCRIPT_URL) {
     console.error("[leadService] VITE_GOOGLE_SCRIPT_URL is not set in .env");
     return;
   }
-
   const testKey = "TEST-" + Date.now();
   const params = new URLSearchParams({
     action: "createLead",
     sessionKey: testKey,
-    name: "TEST ENTRY",
-    mobile: "9999999999",
-    profession: "Tester",
-    email: "test@test.com",
-    city: "TestCity",
-    dob: "2000-01-01",
-    birthTime: "12:00",
-    birthPlace: "TestPlace",
-    issues: "This is a connectivity test — safe to delete",
+    name: "TEST ENTRY", mobile: "9999999999", profession: "Tester",
+    email: "test@test.com", city: "TestCity", dob: "2000-01-01",
+    birthTime: "12:00", birthPlace: "TestPlace",
+    issue1: "Test issue 1", issue2: "Test issue 2", issue3: "Test issue 3",
   });
-
-  console.log("[leadService] Sending test lead to:", `${GOOGLE_SCRIPT_URL}?${params.toString()}`);
-
   try {
-    await fetch(`${GOOGLE_SCRIPT_URL}?${params.toString()}`, {
-      method: "GET",
-      mode: "no-cors",
-    });
-    console.log(
-      `[leadService] ✅ Test request sent! Check your Google Sheet for a row with Session Key: ${testKey}`,
-      "\nIf nothing appears after 5 seconds, your Apps Script needs to be redeployed with doGet() — see GOOGLE_SHEETS_SETUP.md"
-    );
+    await fetch(`${GOOGLE_SCRIPT_URL}?${params.toString()}`, { method: "GET", mode: "no-cors" });
+    console.log(`[leadService] ✅ Test sent! Look for Session Key: ${testKey} in your sheet.`);
   } catch (err) {
-    console.error("[leadService] ❌ Test request failed:", err);
+    console.error("[leadService] ❌ Test failed:", err);
   }
 }
