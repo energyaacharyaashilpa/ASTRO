@@ -165,15 +165,16 @@ export default function Join() {
             transition={{ duration: 0.7, delay: 0.15 }}
             className="rounded-3xl overflow-hidden border border-gold-400/30 shadow-2xl glass-panel p-2 sm:p-4 bg-white"
           >
-            <div className="relative aspect-video rounded-2xl overflow-hidden bg-black shadow-inner group">
-              <iframe
-                src="https://player.vimeo.com/video/911802958?h=2540c74900&title=0&byline=0&portrait=0"
-                title="Astro Vastu VSL"
-                className="absolute inset-0 w-full h-full"
-                allow="autoplay; fullscreen; picture-in-picture"
-                allowFullScreen
+            <div className="relative aspect-video rounded-2xl overflow-hidden bg-black shadow-inner">
+              <video
+                src="/a.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                controls
+                className="absolute inset-0 w-full h-full object-cover"
               />
-              <div className="absolute inset-0 border border-white/10 rounded-xl pointer-events-none group-hover:border-gold-400/20 transition-colors" />
             </div>
             <div className="text-center pt-3 pb-1">
               <p className="text-xs text-gold-800 font-medium tracking-wide">
