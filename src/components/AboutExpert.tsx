@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Award, ShieldCheck, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import AstroLogo from "../assets/astro.webp";
+import AstroLogo from "../assets/img.png";
 
 export default function AboutExpert() {
   return (
