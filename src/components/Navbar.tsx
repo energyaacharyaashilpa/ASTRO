@@ -11,7 +11,7 @@ export default function Navbar() {
             <img
               src={AstroLogo}
               alt="Energy Acharya Shilpa"
-              className="h-24 w-auto object-contain group-hover:opacity-90 transition-opacity"
+              className="h-20 md:h-24 w-auto object-contain group-hover:opacity-90 transition-opacity"
               style={{ maxWidth: "260px" }}
             />
           </Link>
