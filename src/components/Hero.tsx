@@ -27,9 +27,7 @@ export default function Hero() {
         {/* Text — below image */}
         <div className="flex-1 flex flex-col justify-start px-6 pt-6 pb-16">
           <h1 className="font-serif text-3xl sm:text-4xl text-gold-900 leading-[1.15] tracking-wide mb-4">
-            Unlock Abundance,{" "}
-            Career Success &amp; Peace with{" "}
-            <span className="text-gold-gradient font-medium">Astro Vastu</span>
+            Practical and <span className="text-gold-gradient font-medium">Scientific Astrology &amp; Vastu</span> Guidance for Business, Career and Balanced Living.
           </h1>
 
           <p className="text-sm text-gold-900/65 font-light leading-relaxed mb-8">
@@ -78,16 +76,9 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            className="font-serif text-5xl xl:text-[3.4rem] text-gold-900 leading-[1.12] tracking-wide mb-6"
+            className="font-serif text-4xl xl:text-[2.8rem] text-gold-900 leading-[1.15] tracking-wide mb-6"
           >
-            Unlock Abundance,
-            <br />
-            Career Success &amp;
-            <br />
-            Peace with{" "}
-            <span className="text-gold-gradient font-medium">
-              Astro Vastu
-            </span>
+            Practical and <span className="text-gold-gradient font-medium">Scientific Astrology &amp; Vastu</span> Guidance for Business, Career and Balanced Living.
           </motion.h1>
 
           <motion.p
