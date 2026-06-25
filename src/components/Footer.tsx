@@ -51,9 +51,9 @@ export default function Footer() {
           <div>
             <h3 className="font-serif text-base font-bold uppercase tracking-widest mb-5" style={{ color: "#C9A968" }}>Connect</h3>
             <ul className="space-y-3 text-sm" style={{ color: "rgba(255,255,255,0.9)" }}>
-              <li className="flex items-center space-x-2"><Mail className="w-4 h-4 flex-shrink-0" style={{ color: "#C9A968" }} /><span className="truncate">consult@energyacharya-shilpa.com</span></li>
-              <li className="flex items-center space-x-2"><Phone className="w-4 h-4 flex-shrink-0" style={{ color: "#C9A968" }} /><span>+91 98765 43210</span></li>
-              <li className="flex items-center space-x-2"><MapPin className="w-4 h-4 flex-shrink-0" style={{ color: "#C9A968" }} /><span>Venus Enclave, Mumbai, India</span></li>
+              <li className="flex items-center space-x-2"><Mail className="w-4 h-4 flex-shrink-0" style={{ color: "#C9A968" }} /><span className="truncate"> energyaacharyaashilpa@gmail.com</span></li>
+              <li className="flex items-center space-x-2"><Phone className="w-4 h-4 flex-shrink-0" style={{ color: "#C9A968" }} /><span>+917302196333</span></li>
+              <li className="flex items-center space-x-2"><MapPin className="w-4 h-4 flex-shrink-0" style={{ color: "#C9A968" }} /><span>India</span></li>
             </ul>
           </div>
 

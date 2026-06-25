@@ -19,7 +19,8 @@ interface FormData {
   email: string;
   city: string;
   dob: string;
-  birthTime: string;
+  birthTimeAccuracy: string;  // "Exact" | "Approximate" | "Not Known" | ""
+  birthTimeValue: string;      // actual HH:MM — shown only when Exact or Approximate
   birthPlace: string;
   issue1: string;
   issue2: string;
@@ -28,7 +29,7 @@ interface FormData {
 
 const EMPTY_FORM: FormData = {
   name: "", mobile: "", profession: "", email: "",
-  city: "", dob: "", birthTime: "", birthPlace: "",
+  city: "", dob: "", birthTimeAccuracy: "", birthTimeValue: "", birthPlace: "",
   issue1: "", issue2: "", issue3: "",
 };
 
@@ -51,7 +52,7 @@ const faqs = [
   },
   {
     q: "Do your remedies require structural demolition or breaking walls?",
-    a: "Absolutely not. We have a strict 'Zero Demolition' policy. Our Astro Vastu remedies are non-destructive and utilize scientific elements: elemental metal strips (copper, brass, lead, iron), color spectrum therapy, precise object relocation, and planetary crystals to re-tune your home's frequency.",
+    a: "Absolutely not. We have a strict 'Zero Demolition' policy. Our Astro Vastu remedies are non-destructive and utilize scientific elements: elemental metal strips (copper, brass, lead, iron), color spectrum therapy, precise object relocation, and planetary crystals to re-tune your home's frequency. Minor exception: A washroom located in the Northeast (NE) or North-Northeast (NNE) zone is an exception to this policy — these directions govern health, clarity, and divine energy, and a toilet placed here cannot be fully remedied through objects alone. In such cases, relocation may be advisable.",
   },
   {
     q: "How does Astro Vastu differ from standard Vastu Shastra?",
@@ -77,7 +78,7 @@ export default function Join() {
   const scrollToForm = () =>
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -87,11 +88,19 @@ export default function Join() {
     setLoading(true);
     setStatusMessage("Capturing cosmic details...");
 
-    await saveLead(formData);
+    await saveLead({
+      ...formData,
+      // Combine accuracy + value into a single birthTime string for the sheet
+      birthTime: formData.birthTimeAccuracy === "Not Known"
+        ? "Not Known"
+        : formData.birthTimeAccuracy && formData.birthTimeValue
+          ? `${formData.birthTimeValue} (${formData.birthTimeAccuracy})`
+          : formData.birthTimeAccuracy || "",
+    });
     setStatusMessage("Redirecting to payment gateway...");
 
     // Build Razorpay Payment Page URL with prefill parameters
-    const paymentUrl = new URL("https://rzp.io/rzp/JZ4kNwc");
+    const paymentUrl = new URL("https://rzp.io/rzp/hIdhTnDl");
     paymentUrl.searchParams.append("email", formData.email);
     paymentUrl.searchParams.append("phone", formData.mobile);
     paymentUrl.searchParams.append("name", formData.name);
@@ -241,7 +250,7 @@ export default function Join() {
                     <label className={labelCls}>
                       <Briefcase className="w-3.5 h-3.5 text-gold-500" /> Profession
                     </label>
-                    <input type="text" name="profession" required placeholder="e.g. Business Owner"
+                    <input type="text" name="profession" placeholder="e.g. Business Owner"
                       value={formData.profession} onChange={handleChange} className={inputCls} />
                   </div>
 
@@ -257,7 +266,7 @@ export default function Join() {
                     <label className={labelCls}>
                       <MapPin className="w-3.5 h-3.5 text-gold-500" /> Current City of Residence
                     </label>
-                    <input type="text" name="city" required placeholder="e.g. Mumbai"
+                    <input type="text" name="city" placeholder="e.g. Mumbai"
                       value={formData.city} onChange={handleChange} className={inputCls} />
                   </div>
 
@@ -277,23 +286,54 @@ export default function Join() {
                     <label className={labelCls}>
                       <Calendar className="w-3.5 h-3.5 text-gold-500" /> Date of Birth
                     </label>
-                    <input type="date" name="dob" required
+                    <input type="date" name="dob"
                       value={formData.dob} onChange={handleChange} className={inputCls} />
                   </div>
 
                   <div className="space-y-2">
                     <label className={labelCls}>
-                      <Clock className="w-3.5 h-3.5 text-gold-500" /> Time of Birth (Exact)
+                      <Clock className="w-3.5 h-3.5 text-gold-500" /> Birth Time Accuracy
                     </label>
-                    <input type="time" name="birthTime" required
-                      value={formData.birthTime} onChange={handleChange} className={inputCls} />
+                    <select
+                      name="birthTimeAccuracy"
+                      value={formData.birthTimeAccuracy}
+                      onChange={handleChange}
+                      className={inputCls}
+                    >
+                      <option value="" disabled>Select accuracy of birth time</option>
+                      <option value="Exact">Exact — I know the precise time</option>
+                      <option value="Approximate">Approximate — I have a rough idea</option>
+                      <option value="Not Known">Not Known — I don't have this information</option>
+                    </select>
                   </div>
+
+                  {/* Show time input only when Exact or Approximate is selected */}
+                  {(formData.birthTimeAccuracy === "Exact" || formData.birthTimeAccuracy === "Approximate") && (
+                    <div className="space-y-2 sm:col-span-2">
+                      <label className={labelCls}>
+                        <Clock className="w-3.5 h-3.5 text-gold-500" />
+                        {formData.birthTimeAccuracy === "Exact" ? "Exact Time of Birth" : "Approximate Time of Birth"}
+                      </label>
+                      <input
+                        type="time"
+                        name="birthTimeValue"
+                        value={formData.birthTimeValue}
+                        onChange={handleChange}
+                        className={inputCls}
+                      />
+                      {formData.birthTimeAccuracy === "Approximate" && (
+                        <p className="text-[11px] text-gold-900/50 font-light mt-1">
+                          Enter your best estimate — even an approximate time helps narrow the chart.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   <div className="space-y-2 sm:col-span-2">
                     <label className={labelCls}>
                       <MapPin className="w-3.5 h-3.5 text-gold-500" /> Place of Birth (City, State)
                     </label>
-                    <input type="text" name="birthPlace" required placeholder="e.g. Pune, Maharashtra"
+                    <input type="text" name="birthPlace" placeholder="e.g. Pune, Maharashtra"
                       value={formData.birthPlace} onChange={handleChange} className={inputCls} />
                   </div>
 
@@ -317,7 +357,7 @@ export default function Join() {
                       <FileText className="w-3.5 h-3.5 text-gold-500" />
                       Issue 1
                     </label>
-                    <input type="text" name="issue1" required
+                    <input type="text" name="issue1"
                       placeholder="e.g. Stagnant business revenue for 2 years"
                       value={formData.issue1} onChange={handleChange} className={inputCls} />
                   </div>
@@ -327,7 +367,7 @@ export default function Join() {
                       <FileText className="w-3.5 h-3.5 text-gold-500" />
                       Issue 2
                     </label>
-                    <input type="text" name="issue2" required
+                    <input type="text" name="issue2"
                       placeholder="e.g. Chronic arguments with spouse / family"
                       value={formData.issue2} onChange={handleChange} className={inputCls} />
                   </div>
@@ -337,7 +377,7 @@ export default function Join() {
                       <FileText className="w-3.5 h-3.5 text-gold-500" />
                       Issue 3
                     </label>
-                    <input type="text" name="issue3" required
+                    <input type="text" name="issue3"
                       placeholder="e.g. Severe lack of clarity and focus"
                       value={formData.issue3} onChange={handleChange} className={inputCls} />
                   </div>

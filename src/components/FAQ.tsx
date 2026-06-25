@@ -23,7 +23,7 @@ export default function FAQ() {
     },
     {
       q: "Do your remedies require structural demolition or breaking walls?",
-      a: "Absolutely not. We have a strict 'Zero Demolition' policy. Our Astro Vastu remedies are non-destructive and utilize scientific elements: elemental metal strips (copper, brass, lead, iron), color spectrum therapy, precise object relocation, and planetary crystals to re-tune your home's frequency."
+      a: "Absolutely not. We have a strict 'Zero Demolition' policy. Our Astro Vastu remedies are non-destructive and utilize scientific elements: elemental metal strips (copper, brass, lead, iron), color spectrum therapy, precise object relocation, and planetary crystals to re-tune your home's frequency. Minor exception: A washroom located in the Northeast (NE) or North-Northeast (NNE) zone is an exception to this policy — these directions govern health, clarity, and divine energy, and a toilet placed here cannot be fully remedied through objects alone. In such cases, relocation may be advisable."
     },
     {
       q: "How does Astro Vastu differ from standard Vastu Shastra?",
