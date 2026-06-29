@@ -163,7 +163,7 @@ export default function Join() {
             </div>
             <div className="text-center pt-3 pb-1">
               <p className="text-xs text-gold-800 font-medium tracking-wide">
-                WATCH: How standard Vastu remedies might conflict with your Horoscope (10 Mins)
+                WATCH: How standard Vastu remedies might conflict with your Horoscope.
               </p>
             </div>
           </motion.div>
