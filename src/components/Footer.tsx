@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Mail, Phone, MapPin } from "lucide-react";
-import AstroLogo from "../assets/astro.png";
+import AstroLogo from "../assets/astro1.png";
 
 export default function Footer() {
   const handleNavClick = (sectionId: string) => {
@@ -67,7 +67,7 @@ export default function Footer() {
             Disclaimer: Astro Vastu consultations are spiritual guidance practices based on cosmic charts and environmental dynamics. Results may vary and are intended to supplement, not replace, professional financial, career, medical, or legal advice.
           </p>
           <p className="flex-shrink-0 font-light">
-            &copy; {new Date().getFullYear()} Energy Acharya Shilpa Astro Vastu. All rights reserved.
+            &copy; {new Date().getFullYear()} Energy Aacharyaa Shilpa Astro Vastu. All rights reserved.
           </p>
         </div>
       </div>

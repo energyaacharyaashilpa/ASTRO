@@ -17,7 +17,7 @@ Set up Row 1 with these exact headers:
 
 ```javascript
 // ============================================================
-//  Energy Acharya Shilpa — Google Apps Script Webhook
+//  Energy Aacharyaa Shilpa — Google Apps Script Webhook
 //  - Receives leads via GET params (CORS-safe)
 //  - Sends Gmail notification on new lead
 //  - Updates payment status by sessionKey
@@ -153,7 +153,7 @@ function normalizePhone(value) {
 function sendLeadNotification(p, timestamp) {
   if (!NOTIFICATION_EMAIL) return;
 
-  const subject = "🌟 New Lead: " + (p.name || "Unknown") + " — Energy Acharya Shilpa";
+  const subject = "🌟 New Lead: " + (p.name || "Unknown") + " — Energy Aacharyaa Shilpa";
 
   const body = `
 New consultation enquiry received on ${timestamp}
@@ -211,7 +211,7 @@ function sendPaymentNotification(p, rowData) {
   const status = p.status || "Unknown";
 
   const emoji  = status === "Paid" ? "✅" : "❌";
-  const subject = emoji + " Payment " + status + ": " + name + " — Energy Acharya Shilpa";
+  const subject = emoji + " Payment " + status + ": " + name + " — Energy Aacharyaa Shilpa";
 
   const body = `
 Payment status updated for ${name}
@@ -309,7 +309,7 @@ Expected response: `{"status":"ok","message":"Lead saved: TEST-001"}`
 
 Check your:
 1. **Google Sheet** — new row with all 15 columns filled, Payment Status = `Pending`
-2. **Gmail inbox** — email with subject `🌟 New Lead: Test User — Energy Acharya Shilpa`
+2. **Gmail inbox** — email with subject `🌟 New Lead: Test User — Energy Aacharyaa Shilpa`
 
 ---
 
@@ -317,7 +317,7 @@ Check your:
 
 ### New Lead Email
 ```
-Subject: 🌟 New Lead: Rahul Sharma — Energy Acharya Shilpa
+Subject: 🌟 New Lead: Rahul Sharma — Energy Aacharyaa Shilpa
 
 New consultation enquiry received on 23/6/2026, 3:45:00 pm
 
@@ -347,7 +347,7 @@ Issue 3 : Unable to focus on decisions
 
 ### Payment Success Email
 ```
-Subject: ✅ Payment Paid: Rahul Sharma — Energy Acharya Shilpa
+Subject: ✅ Payment Paid: Rahul Sharma — Energy Aacharyaa Shilpa
 
 Status         : Paid
 Transaction ID : pay_PxYz1234abcd

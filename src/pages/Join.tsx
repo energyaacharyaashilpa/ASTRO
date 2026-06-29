@@ -137,7 +137,7 @@ export default function Join() {
             </h1>
             <p className="text-sm text-gold-900/60 max-w-xl mx-auto font-light">
               Watch how your birth chart and living space are silently working against each other —
-              and how Energy Acharya Shilpa fixes it without breaking a single wall.
+              and how Energy Aacharyaa Shilpa fixes it without breaking a single wall.
             </p>
           </motion.div>
 
@@ -156,6 +156,8 @@ export default function Join() {
                 loop
                 playsInline
                 controls
+                controlsList="nodownload"
+                onContextMenu={(e) => e.preventDefault()}
                 className="absolute inset-0 w-full h-full object-cover"
               />
             </div>
@@ -348,7 +350,7 @@ export default function Join() {
                   Your Top 3 Challenges
                 </p>
                 <p className="text-xs text-gold-900/50 font-light mb-5">
-                  Describe each blockage in one line so Energy Acharya Shilpa can map them to your chart.
+                  Describe each blockage in one line so Energy Aacharyaa Shilpa can map them to your chart.
                 </p>
                 <div className="space-y-4">
 

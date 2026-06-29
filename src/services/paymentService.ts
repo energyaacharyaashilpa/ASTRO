@@ -72,7 +72,7 @@ export async function openRazorpayCheckout(opts: CheckoutOptions): Promise<Payme
       key: RAZORPAY_KEY_ID,
       amount: opts.amountInPaise,
       currency: "INR",
-      name: "Energy Acharya Shilpa Astro Vastu",
+      name: "Energy Aacharyaa Shilpa Astro Vastu",
       description: opts.description,
       image: "https://i.imgur.com/n3ZDPsV.png", // Public logo URL — localhost paths can't be reached by Razorpay servers
       prefill: {

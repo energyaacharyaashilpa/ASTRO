@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import AstroLogo from "../assets/astro.png";
+import AstroLogo from "../assets/astro1.png";
 
 export default function Navbar() {
   return (
@@ -10,7 +10,7 @@ export default function Navbar() {
           <Link to="/" className="flex items-center group -ml-2">
             <img
               src={AstroLogo}
-              alt="Energy Acharya Shilpa"
+              alt="Energy Aacharyaa Shilpa"
               className="h-20 md:h-24 w-auto object-contain group-hover:opacity-90 transition-opacity"
               style={{ maxWidth: "260px" }}
             />

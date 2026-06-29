@@ -33,7 +33,7 @@ export default function HomeCTA() {
 
         {/* Copy */}
         <p className="text-sm sm:text-base text-gold-900/70 font-light max-w-2xl mx-auto leading-relaxed">
-          Stop fighting chronic career plateaus, cash flow blocks, and home conflicts. Claim your highly personalized Astro Vastu consultation today. Energy Acharya Shilpa will personally analyze your birth chart and layout.
+          Stop fighting chronic career plateaus, cash flow blocks, and home conflicts. Claim your highly personalized Astro Vastu consultation today. Energy Aacharyaa Shilpa will personally analyze your birth chart and layout.
         </p>
 
         {/* Booking details badge */}

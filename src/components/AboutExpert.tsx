@@ -29,7 +29,7 @@ export default function AboutExpert() {
               <div className="relative rounded-2xl overflow-hidden border-[6px] border-white shadow-2xl max-w-sm sm:max-w-md">
                 <img
                   src={AstroLogo}
-                  alt="Energy Acharya Shilpa - Astro Vastu Expert"
+                  alt="Energy Aacharyaa Shilpa - Astro Vastu Expert"
                   className="w-full h-auto object-cover transform hover:scale-[1.03] transition-transform duration-500"
                 />
               </div>
@@ -57,7 +57,7 @@ export default function AboutExpert() {
             </div>
 
             <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-gold-900 leading-tight">
-              Energy Acharya Shilpa
+              Energy Aacharyaa Shilpa
             </h2>
 
             <p className="text-sm font-semibold text-gold-700 uppercase tracking-wider">
@@ -66,10 +66,10 @@ export default function AboutExpert() {
 
             <div className="space-y-4 text-sm sm:text-base text-gold-900/70 font-light leading-relaxed">
               <p>
-                Energy Acharya Shilpa is a globally renowned Vedic astrologer and master Vastu consultant with over 15 years of active research. She has worked with CEOs, developers, celebrities, and thousands of households to align their destiny with their surroundings.
+                Energy Aacharyaa Shilpa is a globally renowned Vedic astrologer and master Vastu consultant with over 15 years of active research. She has worked with CEOs, developers, celebrities, and thousands of households to align their destiny with their surroundings.
               </p>
               <p>
-                Unlike rigid Vastu consultants who demand expensive demolitions or structural breaking, Energy Acharya Shilpa specializes in <strong>Non-Destructive Astro Vastu Remedies</strong>. She analyzes your personal horoscope to identify which planetary blocks are reflecting in your space, applying precise color therapy, copper/brass alignments, and planetary metal corrections.
+                Unlike rigid Vastu consultants who demand expensive demolitions or structural breaking, Energy Aacharyaa Shilpa specializes in <strong>Non-Destructive Astro Vastu Remedies</strong>. She analyzes your personal horoscope to identify which planetary blocks are reflecting in your space, applying precise color therapy, copper/brass alignments, and planetary metal corrections.
               </p>
             </div>
 
@@ -82,7 +82,7 @@ export default function AboutExpert() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6">
               <div className="flex items-center space-x-2">
                 <Award className="w-5 h-5 text-gold-500 flex-shrink-0" />
-                <span className="text-xs font-semibold text-gold-900">Certified Jyotish Acharya</span>
+                <span className="text-xs font-semibold text-gold-900">Certified Jyotish Aacharyaa</span>
               </div>
 
               <div className="flex items-center space-x-2">
