@@ -1,8 +1,6 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Calendar, Clock, MapPin, User,
-  Mail, Phone, Briefcase, FileText,
   ArrowRight, HelpCircle, Plus, Minus,
 } from "lucide-react";
 

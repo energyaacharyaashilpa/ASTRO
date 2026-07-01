@@ -1,4 +1,4 @@
-import React from "react";
+
 import AstroLogo from "../assets/astro2.png";
 
 export default function ThankYou() {
