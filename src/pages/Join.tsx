@@ -150,7 +150,7 @@ export default function Join() {
               <li>Only 99 members will be accepted every 2 months.</li>
               <li>The Mastermind will starts on 15/July/2026.</li>
               <li>Only 3 slots left.</li>
-              <li>Any questions? <a href="mailto:energyaacharyaashilpa@gmail.com" className="text-gold-600 font-medium hover:underline">connect@digitaldhairya.com</a></li>
+              <li>Any questions? <a href="mailto:energyaacharyaashilpa@gmail.com" className="text-gold-600 font-medium hover:underline">energyaacharyaashilpa@gmail.com</a></li>
             </ul>
           </div>
         </div>
