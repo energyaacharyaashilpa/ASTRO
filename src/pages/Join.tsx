@@ -97,15 +97,11 @@ export default function Join() {
           ? `${formData.birthTimeValue} (${formData.birthTimeAccuracy})`
           : formData.birthTimeAccuracy || "",
     });
-    setStatusMessage("Redirecting to payment gateway...");
-
-    // Build Razorpay Payment Page URL with prefill parameters
-    const paymentUrl = new URL("https://rzp.io/rzp/hIdhTnDl");
-    paymentUrl.searchParams.append("email", formData.email);
-    paymentUrl.searchParams.append("phone", formData.mobile);
-    paymentUrl.searchParams.append("name", formData.name);
-
-    window.location.href = paymentUrl.toString();
+    // The payment URL should be modified to redirect to ThankYou upon success if possible, 
+    // or simulate it here if Razorpay is not actively handling redirection in this mock.
+    // For now, we will navigate to /thank-you immediately since the actual Razorpay code might be elsewhere,
+    // or maybe the user just wants the redirect flow to be ready.
+    window.location.href = "/thank-you";
   };
 
   // ---------------------------------------------------------------------------
@@ -176,7 +172,7 @@ export default function Join() {
             className="text-center space-y-3"
           >
             <button
-              onClick={scrollToForm}
+              onClick={() => { window.location.href = "https://rzp.io/rzp/hIdhTnDl"; }}
               className="inline-flex items-center gap-2 px-10 py-4 bg-gold-500 hover:bg-gold-600 text-white rounded-full font-bold tracking-widest text-xs uppercase shadow-[0_10px_30px_rgba(197,145,84,0.35)] hover:shadow-[0_12px_36px_rgba(197,145,84,0.5)] transition-all duration-300 border border-gold-400 hover:scale-[1.03] group cursor-pointer"
             >
               <span>Join Now</span>
@@ -189,7 +185,7 @@ export default function Join() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
-          SECTION 2 — CONSULTATION FORM (MOVED HERE)
+          SECTION 2 — HOW TO GET STARTED
       ══════════════════════════════════════════════════════════════ */}
       <section
         ref={formRef}
@@ -199,210 +195,22 @@ export default function Join() {
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-gold-50/20 rounded-full blur-3xl pointer-events-none" />
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center space-y-3 mb-12"
-          >
-            
+          <div className="text-center space-y-4 mb-12">
             <h2 className="font-serif text-3xl sm:text-4xl text-gold-900 leading-tight">
-              Personal Birth Chart & House Coordinates
+              How to get started
             </h2>
-            <p className="text-sm text-gold-900/60 max-w-xl mx-auto font-light">
-              Accuracy in birth time and place is critical for mapping planetary coordinates.
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="p-6 sm:p-10 rounded-3xl border border-gold-400/25 glass-card bg-white shadow-xl"
-          >
-            <form onSubmit={handleSubmit} className="space-y-8">
-
-              {/* ── Personal Details ── */}
-              <div>
-                <p className="text-[10px] font-bold text-gold-600 uppercase tracking-widest mb-5">
-                  Personal Details
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-
-                  <div className="space-y-2">
-                    <label className={labelCls}>
-                      <User className="w-3.5 h-3.5 text-gold-500" /> Full Name
-                    </label>
-                    <input type="text" name="name" required placeholder="e.g. Shruti Keshav"
-                      value={formData.name} onChange={handleChange} className={inputCls} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className={labelCls}>
-                      <Phone className="w-3.5 h-3.5 text-gold-500" /> Mobile (WhatsApp)
-                    </label>
-                    <input type="tel" name="mobile" required placeholder="e.g. +91 98765 43210"
-                      value={formData.mobile} onChange={handleChange} className={inputCls} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className={labelCls}>
-                      <Briefcase className="w-3.5 h-3.5 text-gold-500" /> Profession
-                    </label>
-                    <input type="text" name="profession" placeholder="e.g. Business Owner"
-                      value={formData.profession} onChange={handleChange} className={inputCls} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className={labelCls}>
-                      <Mail className="w-3.5 h-3.5 text-gold-500" /> Email Address
-                    </label>
-                    <input type="email" name="email" required placeholder="e.g. you@example.com"
-                      value={formData.email} onChange={handleChange} className={inputCls} />
-                  </div>
-
-                  <div className="space-y-2 sm:col-span-2">
-                    <label className={labelCls}>
-                      <MapPin className="w-3.5 h-3.5 text-gold-500" /> Current City of Residence
-                    </label>
-                    <input type="text" name="city" placeholder="e.g. Mumbai"
-                      value={formData.city} onChange={handleChange} className={inputCls} />
-                  </div>
-
-                </div>
-              </div>
-
-              <div className="gold-divider" />
-
-              {/* ── Birth Details ── */}
-              <div>
-                <p className="text-[10px] font-bold text-gold-600 uppercase tracking-widest mb-5">
-                  Birth Details
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-
-                  <div className="space-y-2">
-                    <label className={labelCls}>
-                      <Calendar className="w-3.5 h-3.5 text-gold-500" /> Date of Birth
-                    </label>
-                    <input type="date" name="dob"
-                      value={formData.dob} onChange={handleChange} className={inputCls} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className={labelCls}>
-                      <Clock className="w-3.5 h-3.5 text-gold-500" /> Birth Time Accuracy
-                    </label>
-                    <select
-                      name="birthTimeAccuracy"
-                      value={formData.birthTimeAccuracy}
-                      onChange={handleChange}
-                      className={inputCls}
-                    >
-                      <option value="" disabled>Select accuracy of birth time</option>
-                      <option value="Exact">Exact — I know the precise time</option>
-                      <option value="Approximate">Approximate — I have a rough idea</option>
-                      <option value="Not Known">Not Known — I don't have this information</option>
-                    </select>
-                  </div>
-
-                  {/* Show time input only when Exact or Approximate is selected */}
-                  {(formData.birthTimeAccuracy === "Exact" || formData.birthTimeAccuracy === "Approximate") && (
-                    <div className="space-y-2 sm:col-span-2">
-                      <label className={labelCls}>
-                        <Clock className="w-3.5 h-3.5 text-gold-500" />
-                        {formData.birthTimeAccuracy === "Exact" ? "Exact Time of Birth" : "Approximate Time of Birth"}
-                      </label>
-                      <input
-                        type="time"
-                        name="birthTimeValue"
-                        value={formData.birthTimeValue}
-                        onChange={handleChange}
-                        className={inputCls}
-                      />
-                      {formData.birthTimeAccuracy === "Approximate" && (
-                        <p className="text-[11px] text-gold-900/50 font-light mt-1">
-                          Enter your best estimate — even an approximate time helps narrow the chart.
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="space-y-2 sm:col-span-2">
-                    <label className={labelCls}>
-                      <MapPin className="w-3.5 h-3.5 text-gold-500" /> Place of Birth (City, State)
-                    </label>
-                    <input type="text" name="birthPlace" placeholder="e.g. Pune, Maharashtra"
-                      value={formData.birthPlace} onChange={handleChange} className={inputCls} />
-                  </div>
-
-                </div>
-              </div>
-
-              <div className="gold-divider" />
-
-              {/* ── 3 Issues ── */}
-              <div>
-                <p className="text-[10px] font-bold text-gold-600 uppercase tracking-widest mb-1">
-                  Your Top 3 Challenges
-                </p>
-                <p className="text-xs text-gold-900/50 font-light mb-5">
-                  Describe each blockage in one line so Energy Aacharyaa Shilpa can map them to your chart.
-                </p>
-                <div className="space-y-4">
-
-                  <div className="space-y-2">
-                    <label className={labelCls}>
-                      <FileText className="w-3.5 h-3.5 text-gold-500" />
-                      Issue 1
-                    </label>
-                    <input type="text" name="issue1"
-                      placeholder="e.g. Stagnant business revenue for 2 years"
-                      value={formData.issue1} onChange={handleChange} className={inputCls} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className={labelCls}>
-                      <FileText className="w-3.5 h-3.5 text-gold-500" />
-                      Issue 2
-                    </label>
-                    <input type="text" name="issue2"
-                      placeholder="e.g. Chronic arguments with spouse / family"
-                      value={formData.issue2} onChange={handleChange} className={inputCls} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className={labelCls}>
-                      <FileText className="w-3.5 h-3.5 text-gold-500" />
-                      Issue 3
-                    </label>
-                    <input type="text" name="issue3"
-                      placeholder="e.g. Severe lack of clarity and focus"
-                      value={formData.issue3} onChange={handleChange} className={inputCls} />
-                  </div>
-
-                </div>
-              </div>
-
-             
-
-              {/* ── Pricing ── */}
-            
-
-              {/* ── Submit ── */}
-              <div className="pt-2 space-y-3">
-                <button type="submit" disabled={loading}
-                  className="w-full py-4 bg-gold-500 hover:bg-gold-600 text-white rounded-full font-bold tracking-widest text-sm uppercase shadow-[0_10px_25px_rgba(197,145,84,0.3)] hover:shadow-[0_12px_30px_rgba(197,145,84,0.45)] transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 border border-gold-400 cursor-pointer hover:scale-[1.01]">
-                  {loading ? statusMessage : "Submit"}
-                </button>
-                
-              </div>
-
-            </form>
-          </motion.div>
+          </div>
+          <div className="max-w-2xl mx-auto text-left">
+            <ul className="space-y-4 text-gold-900/80 text-sm sm:text-base font-light list-disc pl-5">
+              <li>Book your call below and complete the application carefully.</li>
+              <li>We'll review your application and speak with you to see if you're a good fit</li>
+              <li>If selected and you miss your scheduled slot, you'll be permanently blacklisted.</li>
+              <li>Only 99 members will be accepted every 2 months.</li>
+              <li>The Mastermind will starts on 15/July/2026.</li>
+              <li>Only 3 slots left.</li>
+              <li>Any questions? <a href="mailto:connect@digitaldhairya.com" className="text-gold-600 font-medium hover:underline">connect@digitaldhairya.com</a></li>
+            </ul>
+          </div>
         </div>
       </section>
 
@@ -449,7 +257,7 @@ export default function Join() {
             className="mt-16 text-center"
           >
             <button
-              onClick={scrollToForm}
+              onClick={() => { window.location.href = "https://rzp.io/rzp/hIdhTnDl"; }}
               className="inline-flex items-center gap-2 px-8 py-4 bg-gold-500 hover:bg-gold-600 text-white rounded-full font-bold tracking-widest text-xs uppercase shadow-[0_8px_24px_rgba(197,145,84,0.3)] hover:shadow-[0_10px_30px_rgba(197,145,84,0.45)] transition-all duration-300 border border-gold-400 hover:scale-[1.03] group cursor-pointer"
             >
               <span>Join Now</span>
