@@ -9,6 +9,7 @@ import FAQ from "../components/FAQ";
 import HomeCTA from "../components/HomeCTA";
 
 export default function Home() {
+  
   return (
     <div className="relative w-full">
       {/* Hero section */}
