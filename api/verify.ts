@@ -23,54 +23,22 @@ async function connectToDatabase() {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "GET") {
+  if (req.method !== "POST") {
     return res.status(405).json({ message: "Method Not Allowed" });
   }
 
-  const paymentId = req.query.payment_id;
-  const paymentLinkId = req.query.payment_link_id;
-  const paymentLinkReferenceId = req.query.payment_link_reference_id;
-  const paymentLinkStatus = req.query.payment_link_status;
-  const signature = req.query.signature;
-  const isValidPaymentId =
-    typeof paymentId === "string" && /^pay_[A-Za-z0-9]+$/.test(paymentId);
-  const isValidPaymentLinkId =
-    typeof paymentLinkId === "string" && /^plink_[A-Za-z0-9]+$/.test(paymentLinkId);
-  const hasValidCallbackFields =
-    isValidPaymentId &&
-    isValidPaymentLinkId &&
-    typeof paymentLinkReferenceId === "string" &&
-    /^astro-[A-Za-z0-9]+$/.test(paymentLinkReferenceId) &&
-    paymentLinkStatus === "paid" &&
-    typeof signature === "string" &&
-    /^[a-f0-9]{64}$/i.test(signature);
-
-  if (!hasValidCallbackFields) {
-    return res.status(400).json({ verified: false, message: "Invalid payment callback" });
-  }
-
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
-  if (!keySecret) {
-    console.error("RAZORPAY_KEY_SECRET is missing");
-    return res.status(500).json({ message: "Payment verification is not configured" });
-  }
-
-  const signaturePayload = [
-    paymentLinkId,
-    paymentLinkReferenceId,
-    paymentLinkStatus,
-    paymentId,
-  ].join("|");
-  const expectedSignature = crypto
-    .createHmac("sha256", keySecret)
-    .update(signaturePayload)
-    .digest("hex");
+  const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  const contact =
+    typeof req.body?.phone === "string" ? req.body.phone.replace(/\D/g, "").slice(-10) : "";
+  const verificationToken =
+    typeof req.body?.verificationToken === "string" ? req.body.verificationToken : "";
 
   if (
-    signature.length !== expectedSignature.length ||
-    !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+    !/^\d{10}$/.test(contact) ||
+    !/^[a-f0-9]{64}$/.test(verificationToken)
   ) {
-    return res.status(403).json({ verified: false, message: "Invalid payment signature" });
+    return res.status(400).json({ verified: false, message: "Invalid verification session" });
   }
 
   try {
@@ -78,26 +46,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const db = client.db(process.env.MONGODB_DB_NAME || "astro");
     const paymentsCollection = db.collection("payments");
 
-    const claimResult = await paymentsCollection.updateOne(
-      {
-        paymentId,
-        paymentLinkId,
-        status: "verified",
-        thankYouClaimedAt: { $exists: false },
-      },
-      {
-        $set: {
-          thankYouClaimedAt: new Date(),
-          paymentLinkReferenceId,
-        },
-      },
-    );
+    const verificationTokenHash = crypto
+      .createHash("sha256")
+      .update(verificationToken)
+      .digest("hex");
+    const payment = await paymentsCollection.findOne({
+      email,
+      contact,
+      verificationTokenHash,
+    });
 
-    if (claimResult.modifiedCount === 1) {
-      return res.status(200).json({ verified: true });
-    }
-
-    return res.status(200).json({ verified: false });
+    return res.status(200).json({
+      verified: payment?.status === "verified",
+    });
   } catch (error) {
     console.error("Verification error:", error);
     return res.status(500).json({ message: "Internal Server Error" });

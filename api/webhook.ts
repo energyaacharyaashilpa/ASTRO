@@ -99,14 +99,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const event = payload.event;
     console.log(`Received Razorpay webhook event: ${event}`);
 
-    if (event === "payment.captured" || event === "payment_link.paid") {
+    if (event === "payment.captured") {
       const payment = payload.payload?.payment?.entity;
-      const paymentLink = payload.payload?.payment_link?.entity;
       const paymentId = payment?.id;
-      const paymentLinkId = paymentLink?.id;
 
-      if (!paymentId && !paymentLinkId) {
-        console.warn("Verified Razorpay webhook did not include a payment or payment link id");
+      if (!paymentId) {
+        console.warn("Verified Razorpay webhook did not include a payment id");
         return res.status(200).json({ status: "ok" });
       }
 
@@ -118,31 +116,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await webhookEventsCollection.insertOne({
         event,
         paymentId,
-        paymentLinkId,
         orderId: payment?.order_id,
         invoiceId: payment?.invoice_id,
         paymentStatus: payment?.status,
-        paymentLinkStatus: paymentLink?.status,
         receivedAt: new Date(),
       });
 
+      const email =
+        typeof payment?.email === "string" ? payment.email.trim().toLowerCase() : "";
+      const contact =
+        typeof payment?.contact === "string"
+          ? payment.contact.replace(/\D/g, "").slice(-10)
+          : "";
+      const existingPayment = await paymentsCollection.findOne({ paymentId });
+      let paymentFilter: Record<string, unknown> = { paymentId };
+
+      if (existingPayment?._id) {
+        paymentFilter = { _id: existingPayment._id };
+      } else if (email || contact) {
+        const identityFilter =
+          email && contact
+            ? { email, contact }
+            : email
+              ? { email }
+              : { contact };
+        const pendingPayment = await paymentsCollection.findOne(
+          {
+            ...identityFilter,
+            status: "pending",
+            createdAt: { $gte: new Date(Date.now() - 2 * 60 * 60 * 1000) },
+          },
+          { sort: { createdAt: -1 } },
+        );
+
+        if (pendingPayment?._id) {
+          paymentFilter = { _id: pendingPayment._id };
+        }
+      }
+
       await paymentsCollection.updateOne(
-        paymentId ? { paymentId } : { paymentLinkId },
+        paymentFilter,
         { 
           $set: { 
             paymentId,
-            paymentLinkId,
             orderId: payment?.order_id,
             invoiceId: payment?.invoice_id,
             method: payment?.method,
             paymentStatus: payment?.status,
-            paymentLinkStatus: paymentLink?.status,
             razorpayEvent: event,
             status: "verified",
-            amount: payment?.amount ?? paymentLink?.amount,
-            currency: payment?.currency ?? paymentLink?.currency,
-            email: payment?.email ?? paymentLink?.customer?.email,
-            contact: payment?.contact ?? paymentLink?.customer?.contact,
+            amount: payment?.amount,
+            currency: payment?.currency,
+            email,
+            contact,
             updatedAt: new Date()
           },
           $setOnInsert: {
@@ -152,7 +178,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         { upsert: true }
       );
 
-      console.log(`Successfully verified Razorpay ${event}: ${paymentId || paymentLinkId}`);
+      console.log(`Successfully verified Razorpay ${event}: ${paymentId}`);
     }
 
     return res.status(200).json({ status: "ok" });
