@@ -2,6 +2,22 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import AstroLogo from "../assets/astro2.png";
 
+const RAZORPAY_ACCESS_KEY = "razorpay-thank-you-access";
+
+function hasRazorpayReferral() {
+  try {
+    const hostname = new URL(document.referrer).hostname.toLowerCase();
+    return (
+      hostname === "razorpay.com" ||
+      hostname.endsWith(".razorpay.com") ||
+      hostname === "rzp.io" ||
+      hostname.endsWith(".rzp.io")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export default function ThankYou() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -13,8 +29,18 @@ export default function ThankYou() {
     paymentLinkId && /^plink_[A-Za-z0-9]+$/.test(paymentLinkId),
   );
   const hasValidIdentifier = hasValidPaymentId || hasValidPaymentLinkId;
+  const [hasRazorpayAccess] = useState(() => {
+    const hasSessionAccess = sessionStorage.getItem(RAZORPAY_ACCESS_KEY) === "allowed";
+    const referredByRazorpay = hasRazorpayReferral();
+
+    if (referredByRazorpay) {
+      sessionStorage.setItem(RAZORPAY_ACCESS_KEY, "allowed");
+    }
+
+    return hasSessionAccess || referredByRazorpay;
+  });
   const [verificationStatus, setVerificationStatus] = useState<"verifying" | "success" | "failed">(
-    hasValidIdentifier ? "verifying" : "failed",
+    hasValidIdentifier ? "verifying" : hasRazorpayAccess ? "success" : "failed",
   );
 
   useEffect(() => {
@@ -90,7 +116,11 @@ export default function ThankYou() {
     paymentLinkId,
   ]);
 
-  const displayedStatus = hasValidIdentifier ? verificationStatus : "failed";
+  const displayedStatus = hasValidIdentifier
+    ? verificationStatus
+    : hasRazorpayAccess
+      ? "success"
+      : "failed";
 
   if (displayedStatus === "verifying") {
     return (
