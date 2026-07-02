@@ -8,18 +8,25 @@ export default function ThankYou() {
   const paymentId = searchParams.get("razorpay_payment_id") || searchParams.get("payment_id");
   const paymentLinkId =
     searchParams.get("razorpay_payment_link_id") || searchParams.get("payment_link_id");
+  const hasValidPaymentId = Boolean(paymentId && /^pay_[A-Za-z0-9]+$/.test(paymentId));
+  const hasValidPaymentLinkId = Boolean(
+    paymentLinkId && /^plink_[A-Za-z0-9]+$/.test(paymentLinkId),
+  );
+  const hasValidIdentifier = hasValidPaymentId || hasValidPaymentLinkId;
   const [verificationStatus, setVerificationStatus] = useState<"verifying" | "success" | "failed">(
-    paymentId || paymentLinkId ? "verifying" : "failed",
+    hasValidIdentifier ? "verifying" : "failed",
   );
 
   useEffect(() => {
-    if (!paymentId && !paymentLinkId) {
+    if (!hasValidIdentifier) {
       return;
     }
 
     const verifyParams = new URLSearchParams();
-    if (paymentId) verifyParams.set("payment_id", paymentId);
-    if (paymentLinkId) verifyParams.set("payment_link_id", paymentLinkId);
+    if (hasValidPaymentId && paymentId) verifyParams.set("payment_id", paymentId);
+    if (hasValidPaymentLinkId && paymentLinkId) {
+      verifyParams.set("payment_link_id", paymentLinkId);
+    }
     const verifyUrl = `/api/verify?${verifyParams.toString()}`;
 
     let cancelled = false;
@@ -42,6 +49,11 @@ export default function ThankYou() {
 
       fetch(verifyUrl)
         .then(async (res) => {
+          if (res.status === 400) {
+            setVerificationStatus("failed");
+            return null;
+          }
+
           if (!res.ok) {
             throw new Error(`Verification request failed with status ${res.status}`);
           }
@@ -49,7 +61,7 @@ export default function ThankYou() {
           return res.json();
         })
         .then(data => {
-          if (cancelled) return;
+          if (cancelled || !data) return;
 
           if (data.verified) {
             setVerificationStatus("success");
@@ -70,9 +82,17 @@ export default function ThankYou() {
       cancelled = true;
     };
 
-  }, [paymentId, paymentLinkId]);
+  }, [
+    hasValidIdentifier,
+    hasValidPaymentId,
+    hasValidPaymentLinkId,
+    paymentId,
+    paymentLinkId,
+  ]);
 
-  if (verificationStatus === "verifying") {
+  const displayedStatus = hasValidIdentifier ? verificationStatus : "failed";
+
+  if (displayedStatus === "verifying") {
     return (
       <div className="min-h-screen bg-luxury-gradient flex flex-col items-center justify-center p-6 sm:p-12 text-gold-900 font-serif">
         <div className="max-w-3xl w-full bg-white/90 backdrop-blur-sm p-8 sm:p-12 rounded-2xl border border-gold-400/30 shadow-2xl flex flex-col items-center text-center space-y-6">
@@ -84,7 +104,7 @@ export default function ThankYou() {
     );
   }
 
-  if (verificationStatus === "failed") {
+  if (displayedStatus === "failed") {
     return (
       <div className="min-h-screen bg-luxury-gradient flex flex-col items-center justify-center p-6 sm:p-12 text-gold-900 font-serif">
         <div className="max-w-3xl w-full bg-white/90 backdrop-blur-sm p-8 sm:p-12 rounded-2xl border border-gold-400/30 shadow-2xl flex flex-col items-center text-center space-y-6">

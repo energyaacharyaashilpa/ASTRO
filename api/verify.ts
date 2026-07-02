@@ -28,12 +28,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const paymentId = req.query.payment_id;
   const paymentLinkId = req.query.payment_link_id;
+  const isValidPaymentId =
+    typeof paymentId === "string" && /^pay_[A-Za-z0-9]+$/.test(paymentId);
+  const isValidPaymentLinkId =
+    typeof paymentLinkId === "string" && /^plink_[A-Za-z0-9]+$/.test(paymentLinkId);
 
-  if (
-    (!paymentId || typeof paymentId !== "string") &&
-    (!paymentLinkId || typeof paymentLinkId !== "string")
-  ) {
-    return res.status(400).json({ message: "Missing payment_id or payment_link_id" });
+  if (!isValidPaymentId && !isValidPaymentLinkId) {
+    return res.status(400).json({ verified: false, message: "Invalid payment identifier" });
   }
 
   try {
@@ -43,8 +44,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const payment = await paymentsCollection.findOne({
       $or: [
-        ...(typeof paymentId === "string" ? [{ paymentId }] : []),
-        ...(typeof paymentLinkId === "string" ? [{ paymentLinkId }] : []),
+        ...(isValidPaymentId ? [{ paymentId }] : []),
+        ...(isValidPaymentLinkId ? [{ paymentLinkId }] : []),
       ],
     });
 
