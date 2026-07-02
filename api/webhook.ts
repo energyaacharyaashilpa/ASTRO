@@ -62,26 +62,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const payload = JSON.parse(rawBody);
-    
-    // We only care about payment.captured for now
-    if (payload.event === "payment.captured") {
-      const payment = payload.payload.payment.entity;
-      const paymentId = payment.id;
-      
+    const event = payload.event;
+
+    if (event === "payment.captured" || event === "payment_link.paid") {
+      const payment = payload.payload?.payment?.entity;
+      const paymentLink = payload.payload?.payment_link?.entity;
+      const paymentId = payment?.id;
+      const paymentLinkId = paymentLink?.id;
+
+      if (!paymentId && !paymentLinkId) {
+        console.warn("Verified Razorpay webhook did not include a payment or payment link id");
+        return res.status(200).json({ status: "ok" });
+      }
+
       const client = await connectToDatabase();
       const db = client.db(); // uses default db from URI
       const paymentsCollection = db.collection("payments");
 
       await paymentsCollection.updateOne(
-        { paymentId },
+        paymentId ? { paymentId } : { paymentLinkId },
         { 
           $set: { 
-            paymentId, 
+            paymentId,
+            paymentLinkId,
+            paymentLinkStatus: paymentLink?.status,
+            razorpayEvent: event,
             status: "verified",
-            amount: payment.amount,
-            currency: payment.currency,
-            email: payment.email,
-            contact: payment.contact,
+            amount: payment?.amount ?? paymentLink?.amount,
+            currency: payment?.currency ?? paymentLink?.currency,
+            email: payment?.email ?? paymentLink?.customer?.email,
+            contact: payment?.contact ?? paymentLink?.customer?.contact,
             updatedAt: new Date()
           },
           $setOnInsert: {
@@ -91,7 +101,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         { upsert: true }
       );
 
-      console.log(`Successfully verified and stored payment ${paymentId}`);
+      console.log(`Successfully verified Razorpay ${event}: ${paymentId || paymentLinkId}`);
     }
 
     return res.status(200).json({ status: "ok" });
@@ -100,4 +110,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 }
-

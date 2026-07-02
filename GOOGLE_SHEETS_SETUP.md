@@ -290,7 +290,7 @@ const NOTIFICATION_EMAIL = "energyacharyashilpa@gmail.com, assistant@gmail.com";
 
 ```env
 VITE_GOOGLE_SCRIPT_URL=https://script.google.com/macros/s/YOUR_NEW_ID/exec
-VITE_RAZORPAY_KEY_ID=rzp_test_XXXXXXXXXXXXXXXX
+VITE_RAZORPAY_PAYMENT_LINK_URL=https://rzp.io/rzp/your-payment-link
 ```
 
 Restart `npm run dev` after saving.

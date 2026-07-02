@@ -25,9 +25,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const paymentId = req.query.payment_id;
+  const paymentLinkId = req.query.payment_link_id;
 
-  if (!paymentId || typeof paymentId !== "string") {
-    return res.status(400).json({ message: "Missing payment_id" });
+  if (
+    (!paymentId || typeof paymentId !== "string") &&
+    (!paymentLinkId || typeof paymentLinkId !== "string")
+  ) {
+    return res.status(400).json({ message: "Missing payment_id or payment_link_id" });
   }
 
   try {
@@ -35,7 +39,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const db = client.db();
     const paymentsCollection = db.collection("payments");
 
-    const payment = await paymentsCollection.findOne({ paymentId });
+    const payment = await paymentsCollection.findOne({
+      $or: [
+        ...(typeof paymentId === "string" ? [{ paymentId }] : []),
+        ...(typeof paymentLinkId === "string" ? [{ paymentLinkId }] : []),
+      ],
+    });
 
     if (payment && payment.status === "verified") {
       return res.status(200).json({ verified: true });

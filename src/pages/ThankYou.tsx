@@ -8,41 +8,56 @@ export default function ThankYou() {
   const [verificationStatus, setVerificationStatus] = useState<"verifying" | "success" | "failed">("verifying");
 
   useEffect(() => {
-    // Razorpay automatically appends payment IDs to the URL on successful redirect.
-    // If there is no payment ID in the URL, this means someone just typed /thank-you manually.
+    // Razorpay Payment Links append payment/payment-link IDs to the callback URL.
     const paymentId = searchParams.get("razorpay_payment_id") || searchParams.get("payment_id");
+    const paymentLinkId =
+      searchParams.get("razorpay_payment_link_id") || searchParams.get("payment_link_id");
 
-    if (!paymentId) {
+    if (!paymentId && !paymentLinkId) {
       navigate("/");
       return;
     }
 
-    // Verify payment from our backend which checks MongoDB for webhook confirmation
-    fetch(`/api/verify?payment_id=${paymentId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.verified) {
-          setVerificationStatus("success");
-        } else {
-          // If not verified, retry once after 3 seconds in case webhook is slightly delayed
-          setTimeout(() => {
-            fetch(`/api/verify?payment_id=${paymentId}`)
-              .then(res => res.json())
-              .then(retryData => {
-                if (retryData.verified) {
-                  setVerificationStatus("success");
-                } else {
-                  setVerificationStatus("failed");
-                }
-              })
-              .catch(() => setVerificationStatus("failed"));
-          }, 3000);
-        }
-      })
-      .catch((error) => {
-        console.error("Verification error:", error);
-        setVerificationStatus("failed");
-      });
+    const verifyParams = new URLSearchParams();
+    if (paymentId) verifyParams.set("payment_id", paymentId);
+    if (paymentLinkId) verifyParams.set("payment_link_id", paymentLinkId);
+    const verifyUrl = `/api/verify?${verifyParams.toString()}`;
+
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    const verifyPayment = () => {
+      attempts += 1;
+
+      fetch(verifyUrl)
+        .then(res => res.json())
+        .then(data => {
+          if (cancelled) return;
+
+          if (data.verified) {
+            setVerificationStatus("success");
+            return;
+          }
+
+          if (attempts >= maxAttempts) {
+            setVerificationStatus("failed");
+            return;
+          }
+
+          setTimeout(verifyPayment, 3000);
+        })
+        .catch((error) => {
+          console.error("Verification error:", error);
+          if (!cancelled) setVerificationStatus("failed");
+        });
+    };
+
+    verifyPayment();
+
+    return () => {
+      cancelled = true;
+    };
 
   }, [searchParams, navigate]);
 
