@@ -2,6 +2,13 @@ import crypto from "crypto";
 import { MongoClient } from "mongodb";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
+// We MUST disable the body parser to get the exact raw body for signature verification
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 let cachedClient: MongoClient | null = null;
 
 async function connectToDatabase() {
@@ -37,7 +44,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const rawBody = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+    // Read the raw body stream
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) {
+      chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+    }
+    const rawBody = Buffer.concat(chunks).toString("utf8");
 
     const expectedSignature = crypto
       .createHmac("sha256", secret)
@@ -45,10 +57,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .digest("hex");
 
     if (expectedSignature !== signature) {
+      console.error("Invalid Razorpay signature!");
       return res.status(403).json({ message: "Invalid Signature" });
     }
 
-    const payload = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const payload = JSON.parse(rawBody);
     
     // We only care about payment.captured for now
     if (payload.event === "payment.captured") {
@@ -87,3 +100,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 }
+
