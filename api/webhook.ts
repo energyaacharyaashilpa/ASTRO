@@ -28,6 +28,15 @@ async function connectToDatabase() {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method === "GET") {
+    return res.status(200).json({
+      status: "webhook endpoint is live",
+      hasMongoUri: Boolean(process.env.MONGODB_URI),
+      hasWebhookSecret: Boolean(process.env.RAZORPAY_WEBHOOK_SECRET),
+      dbName: process.env.MONGODB_DB_NAME || "astro",
+    });
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method Not Allowed" });
   }
@@ -63,6 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const payload = JSON.parse(rawBody);
     const event = payload.event;
+    console.log(`Received Razorpay webhook event: ${event}`);
 
     if (event === "payment.captured" || event === "payment_link.paid") {
       const payment = payload.payload?.payment?.entity;
