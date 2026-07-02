@@ -29,6 +29,29 @@ async function connectToDatabase() {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "GET") {
+    if (req.query.check === "mongo") {
+      try {
+        const client = await connectToDatabase();
+        const db = client.db(process.env.MONGODB_DB_NAME || "astro");
+        await db.command({ ping: 1 });
+        const paymentsCount = await db.collection("payments").countDocuments();
+        const webhookEventsCount = await db.collection("webhook_events").countDocuments();
+
+        return res.status(200).json({
+          status: "mongo connected",
+          dbName: db.databaseName,
+          paymentsCount,
+          webhookEventsCount,
+        });
+      } catch (error) {
+        console.error("Mongo diagnostic failed:", error);
+        return res.status(500).json({
+          status: "mongo connection failed",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    }
+
     return res.status(200).json({
       status: "webhook endpoint is live",
       hasMongoUri: Boolean(process.env.MONGODB_URI),
@@ -88,6 +111,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const client = await connectToDatabase();
       const db = client.db(process.env.MONGODB_DB_NAME || "astro");
       const paymentsCollection = db.collection("payments");
+      const webhookEventsCollection = db.collection("webhook_events");
+
+      await webhookEventsCollection.insertOne({
+        event,
+        paymentId,
+        paymentLinkId,
+        orderId: payment?.order_id,
+        invoiceId: payment?.invoice_id,
+        paymentStatus: payment?.status,
+        paymentLinkStatus: paymentLink?.status,
+        receivedAt: new Date(),
+      });
 
       await paymentsCollection.updateOne(
         paymentId ? { paymentId } : { paymentLinkId },
@@ -95,6 +130,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           $set: { 
             paymentId,
             paymentLinkId,
+            orderId: payment?.order_id,
+            invoiceId: payment?.invoice_id,
+            method: payment?.method,
+            paymentStatus: payment?.status,
             paymentLinkStatus: paymentLink?.status,
             razorpayEvent: event,
             status: "verified",
