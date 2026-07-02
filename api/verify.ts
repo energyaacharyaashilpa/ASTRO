@@ -36,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const client = await connectToDatabase();
-    const db = client.db();
+    const db = client.db(process.env.MONGODB_DB_NAME || "astro");
     const paymentsCollection = db.collection("payments");
 
     const payment = await paymentsCollection.findOne({

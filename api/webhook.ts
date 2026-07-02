@@ -76,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const client = await connectToDatabase();
-      const db = client.db(); // uses default db from URI
+      const db = client.db(process.env.MONGODB_DB_NAME || "astro");
       const paymentsCollection = db.collection("payments");
 
       await paymentsCollection.updateOne(
