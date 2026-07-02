@@ -5,16 +5,15 @@ import AstroLogo from "../assets/astro2.png";
 export default function ThankYou() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [verificationStatus, setVerificationStatus] = useState<"verifying" | "success" | "failed">("verifying");
+  const paymentId = searchParams.get("razorpay_payment_id") || searchParams.get("payment_id");
+  const paymentLinkId =
+    searchParams.get("razorpay_payment_link_id") || searchParams.get("payment_link_id");
+  const [verificationStatus, setVerificationStatus] = useState<"verifying" | "success" | "failed">(
+    paymentId || paymentLinkId ? "verifying" : "failed",
+  );
 
   useEffect(() => {
-    // Razorpay Payment Links append payment/payment-link IDs to the callback URL.
-    const paymentId = searchParams.get("razorpay_payment_id") || searchParams.get("payment_id");
-    const paymentLinkId =
-      searchParams.get("razorpay_payment_link_id") || searchParams.get("payment_link_id");
-
     if (!paymentId && !paymentLinkId) {
-      navigate("/");
       return;
     }
 
@@ -27,11 +26,28 @@ export default function ThankYou() {
     let attempts = 0;
     const maxAttempts = 10;
 
+    const retryOrFail = () => {
+      if (cancelled) return;
+
+      if (attempts >= maxAttempts) {
+        setVerificationStatus("failed");
+        return;
+      }
+
+      setTimeout(verifyPayment, 3000);
+    };
+
     const verifyPayment = () => {
       attempts += 1;
 
       fetch(verifyUrl)
-        .then(res => res.json())
+        .then(async (res) => {
+          if (!res.ok) {
+            throw new Error(`Verification request failed with status ${res.status}`);
+          }
+
+          return res.json();
+        })
         .then(data => {
           if (cancelled) return;
 
@@ -40,16 +56,11 @@ export default function ThankYou() {
             return;
           }
 
-          if (attempts >= maxAttempts) {
-            setVerificationStatus("failed");
-            return;
-          }
-
-          setTimeout(verifyPayment, 3000);
+          retryOrFail();
         })
         .catch((error) => {
           console.error("Verification error:", error);
-          if (!cancelled) setVerificationStatus("failed");
+          retryOrFail();
         });
     };
 
@@ -59,7 +70,7 @@ export default function ThankYou() {
       cancelled = true;
     };
 
-  }, [searchParams, navigate]);
+  }, [paymentId, paymentLinkId]);
 
   if (verificationStatus === "verifying") {
     return (
