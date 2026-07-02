@@ -21,7 +21,9 @@ async function connectToDatabase() {
     throw new Error("Please define the MONGODB_URI environment variable");
   }
 
-  const client = new MongoClient(uri);
+  const client = new MongoClient(uri, {
+    serverSelectionTimeoutMS: 10000,
+  });
   await client.connect();
   cachedClient = client;
   return client;
