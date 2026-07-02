@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import AstroLogo from "../assets/astro2.png";
 
 export default function ThankYou() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [verificationStatus, setVerificationStatus] = useState<"verifying" | "success" | "failed">("verifying");
 
   useEffect(() => {
     // Razorpay automatically appends payment IDs to the URL on successful redirect.
@@ -13,8 +14,71 @@ export default function ThankYou() {
 
     if (!paymentId) {
       navigate("/");
+      return;
     }
+
+    // Verify payment from our backend which checks MongoDB for webhook confirmation
+    fetch(`/api/verify?payment_id=${paymentId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.verified) {
+          setVerificationStatus("success");
+        } else {
+          // If not verified, retry once after 3 seconds in case webhook is slightly delayed
+          setTimeout(() => {
+            fetch(`/api/verify?payment_id=${paymentId}`)
+              .then(res => res.json())
+              .then(retryData => {
+                if (retryData.verified) {
+                  setVerificationStatus("success");
+                } else {
+                  setVerificationStatus("failed");
+                }
+              })
+              .catch(() => setVerificationStatus("failed"));
+          }, 3000);
+        }
+      })
+      .catch((error) => {
+        console.error("Verification error:", error);
+        setVerificationStatus("failed");
+      });
+
   }, [searchParams, navigate]);
+
+  if (verificationStatus === "verifying") {
+    return (
+      <div className="min-h-screen bg-luxury-gradient flex flex-col items-center justify-center p-6 sm:p-12 text-gold-900 font-serif">
+        <div className="max-w-3xl w-full bg-white/90 backdrop-blur-sm p-8 sm:p-12 rounded-2xl border border-gold-400/30 shadow-2xl flex flex-col items-center text-center space-y-6">
+          <img src={AstroLogo} alt="Energy Aacharyaa Shilpa" className="h-28 md:h-36 w-auto object-contain mb-4 animate-pulse" />
+          <h1 className="text-2xl sm:text-3xl font-bold text-gold-700">Verifying your payment...</h1>
+          <p className="text-lg text-gold-900/80">Please wait while we confirm your payment details securely.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (verificationStatus === "failed") {
+    return (
+      <div className="min-h-screen bg-luxury-gradient flex flex-col items-center justify-center p-6 sm:p-12 text-gold-900 font-serif">
+        <div className="max-w-3xl w-full bg-white/90 backdrop-blur-sm p-8 sm:p-12 rounded-2xl border border-gold-400/30 shadow-2xl flex flex-col items-center text-center space-y-6">
+          <img src={AstroLogo} alt="Energy Aacharyaa Shilpa" className="h-28 md:h-36 w-auto object-contain mb-4" />
+          <h1 className="text-2xl sm:text-3xl font-bold text-red-600">Payment Verification Failed</h1>
+          <p className="text-lg text-gold-900/80">We couldn't verify your payment. The webhook may be delayed, or the transaction was not completed.</p>
+          <p className="text-sm text-gold-900/60 max-w-2xl font-light">
+            If money was deducted from your account, please contact us at <a href="mailto:energyaacharyaashilpa@gmail.com" className="text-gold-600 hover:underline">energyaacharyaashilpa@gmail.com</a>.
+          </p>
+          <button 
+            onClick={() => navigate("/")}
+            className="mt-4 px-6 py-2 bg-gold-600 text-white rounded-lg hover:bg-gold-700 transition-colors"
+          >
+            Return Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-luxury-gradient flex flex-col items-center justify-center p-6 sm:p-12 text-gold-900 font-serif">
