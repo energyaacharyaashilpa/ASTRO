@@ -4,47 +4,37 @@ import AstroLogo from "../assets/astro2.png";
 
 const RAZORPAY_ACCESS_KEY = "razorpay-thank-you-access";
 
-function hasRazorpayReferral() {
-  try {
-    const hostname = new URL(document.referrer).hostname.toLowerCase();
-    return (
-      hostname === "razorpay.com" ||
-      hostname.endsWith(".razorpay.com") ||
-      hostname === "rzp.io" ||
-      hostname.endsWith(".rzp.io")
-    );
-  } catch {
-    return false;
-  }
-}
-
 export default function ThankYou() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const paymentId = searchParams.get("razorpay_payment_id") || searchParams.get("payment_id");
   const paymentLinkId =
     searchParams.get("razorpay_payment_link_id") || searchParams.get("payment_link_id");
+  const paymentLinkReferenceId = searchParams.get("razorpay_payment_link_reference_id");
+  const paymentLinkStatus = searchParams.get("razorpay_payment_link_status");
+  const signature = searchParams.get("razorpay_signature");
   const hasValidPaymentId = Boolean(paymentId && /^pay_[A-Za-z0-9]+$/.test(paymentId));
   const hasValidPaymentLinkId = Boolean(
     paymentLinkId && /^plink_[A-Za-z0-9]+$/.test(paymentLinkId),
   );
-  const hasValidIdentifier = hasValidPaymentId || hasValidPaymentLinkId;
-  const [hasRazorpayAccess] = useState(() => {
-    const hasSessionAccess = sessionStorage.getItem(RAZORPAY_ACCESS_KEY) === "allowed";
-    const referredByRazorpay = hasRazorpayReferral();
-
-    if (referredByRazorpay) {
-      sessionStorage.setItem(RAZORPAY_ACCESS_KEY, "allowed");
-    }
-
-    return hasSessionAccess || referredByRazorpay;
-  });
+  const hasValidCallback = Boolean(
+    hasValidPaymentId &&
+    hasValidPaymentLinkId &&
+    paymentLinkReferenceId &&
+    /^astro-[A-Za-z0-9]+$/.test(paymentLinkReferenceId) &&
+    paymentLinkStatus === "paid" &&
+    signature &&
+    /^[a-f0-9]{64}$/i.test(signature),
+  );
+  const [hasSessionAccess] = useState(
+    () => sessionStorage.getItem(RAZORPAY_ACCESS_KEY) === "allowed",
+  );
   const [verificationStatus, setVerificationStatus] = useState<"verifying" | "success" | "failed">(
-    hasValidIdentifier ? "verifying" : hasRazorpayAccess ? "success" : "failed",
+    hasSessionAccess ? "success" : hasValidCallback ? "verifying" : "failed",
   );
 
   useEffect(() => {
-    if (!hasValidIdentifier) {
+    if (hasSessionAccess || !hasValidCallback) {
       return;
     }
 
@@ -53,6 +43,9 @@ export default function ThankYou() {
     if (hasValidPaymentLinkId && paymentLinkId) {
       verifyParams.set("payment_link_id", paymentLinkId);
     }
+    verifyParams.set("payment_link_reference_id", paymentLinkReferenceId!);
+    verifyParams.set("payment_link_status", paymentLinkStatus!);
+    verifyParams.set("signature", signature!);
     const verifyUrl = `/api/verify?${verifyParams.toString()}`;
 
     let cancelled = false;
@@ -75,7 +68,7 @@ export default function ThankYou() {
 
       fetch(verifyUrl)
         .then(async (res) => {
-          if (res.status === 400) {
+          if (res.status === 400 || res.status === 403) {
             setVerificationStatus("failed");
             return null;
           }
@@ -90,6 +83,7 @@ export default function ThankYou() {
           if (cancelled || !data) return;
 
           if (data.verified) {
+            sessionStorage.setItem(RAZORPAY_ACCESS_KEY, "allowed");
             setVerificationStatus("success");
             return;
           }
@@ -109,18 +103,18 @@ export default function ThankYou() {
     };
 
   }, [
-    hasValidIdentifier,
+    hasSessionAccess,
+    hasValidCallback,
     hasValidPaymentId,
     hasValidPaymentLinkId,
     paymentId,
     paymentLinkId,
+    paymentLinkReferenceId,
+    paymentLinkStatus,
+    signature,
   ]);
 
-  const displayedStatus = hasValidIdentifier
-    ? verificationStatus
-    : hasRazorpayAccess
-      ? "success"
-      : "failed";
+  const displayedStatus = hasSessionAccess || hasValidCallback ? verificationStatus : "failed";
 
   if (displayedStatus === "verifying") {
     return (
