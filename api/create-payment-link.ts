@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         amount: 99900,
         currency: "INR",
         accept_partial: false,
-        reference_id: `astro-${randomUUID()}`,
+        reference_id: `astro-${randomUUID().replaceAll("-", "").slice(0, 24)}`,
         description: "Astro Vastu Consultation",
         callback_url: callbackUrl,
         callback_method: "get",
@@ -44,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!razorpayResponse.ok || typeof data.short_url !== "string") {
       console.error("Razorpay payment link creation failed", {
         status: razorpayResponse.status,
-        error: data.error,
+        error: data.error || data,
       });
       return res.status(502).json({ message: "Could not start payment" });
     }
