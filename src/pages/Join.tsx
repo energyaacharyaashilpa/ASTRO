@@ -1,13 +1,12 @@
-import  { useState, useRef } from "react";
+import  { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowRight, HelpCircle, LoaderCircle, Plus, Minus, X,
+  ArrowRight, HelpCircle, Plus, Minus,
 } from "lucide-react";
 
 import { reviews, TestimonialCard } from "../components/Testimonials";
 
-const HOSTED_PAYMENT_PAGE_URL = "https://rzp.io/rzp/hIdhTnDl";
-const PAYMENT_SESSION_KEY = "razorpay-customer-session";
+const PAYMENT_URL = "https://rzp.io/rzp/hIdhTnDl";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -46,140 +45,14 @@ const faqs = [
 // Component
 // ---------------------------------------------------------------------------
 export default function Join() {
-  const formRef = useRef<HTMLDivElement>(null);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
-  const [isStartingPayment, setIsStartingPayment] = useState(false);
-  const [paymentError, setPaymentError] = useState("");
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
 
-  const startPayment = () => {
-    setPaymentError("");
-    setShowPaymentForm(true);
+  const goToPayment = () => {
+    window.location.href = PAYMENT_URL;
   };
 
-  const submitPayment = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (isStartingPayment) return;
-
-    setIsStartingPayment(true);
-    setPaymentError("");
-
-    try {
-      const response = await fetch("/api/payment-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, phone }),
-      });
-      const data = await response.json();
-
-      if (
-        !response.ok ||
-        typeof data.email !== "string" ||
-        typeof data.phone !== "string" ||
-        typeof data.verificationToken !== "string"
-      ) {
-        throw new Error(data.message || "Could not start payment");
-      }
-
-      sessionStorage.removeItem("razorpay-thank-you-access");
-      sessionStorage.setItem(
-        PAYMENT_SESSION_KEY,
-        JSON.stringify({
-          email: data.email,
-          phone: data.phone,
-          verificationToken: data.verificationToken,
-        }),
-      );
-      window.location.assign(HOSTED_PAYMENT_PAGE_URL);
-    } catch (error) {
-      console.error("Payment start error:", error);
-      setPaymentError(
-        error instanceof Error ? error.message : "Payment could not be started. Please try again.",
-      );
-      setIsStartingPayment(false);
-    }
-  };
-
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
   return (
     <div className="relative bg-luxury-gradient overflow-hidden">
-      <AnimatePresence>
-        {showPaymentForm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4"
-            onMouseDown={() => !isStartingPayment && setShowPaymentForm(false)}
-          >
-            <motion.form
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 12 }}
-              onSubmit={submitPayment}
-              onMouseDown={(event) => event.stopPropagation()}
-              className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-2xl sm:p-8"
-            >
-              <button
-                type="button"
-                aria-label="Close"
-                title="Close"
-                disabled={isStartingPayment}
-                onClick={() => setShowPaymentForm(false)}
-                className="absolute right-4 top-4 p-2 text-gold-900/60 hover:text-gold-900 disabled:opacity-50"
-              >
-                <X className="h-5 w-5" />
-              </button>
-
-              <h2 className="pr-10 font-serif text-2xl text-gold-900">Continue to payment</h2>
-              <p className="mt-2 text-sm text-gold-900/65">
-                Use these same details on the Razorpay payment page.
-              </p>
-
-              <div className="mt-6 space-y-4">
-                <label className="block text-left text-sm font-medium text-gold-900">
-                  Email
-                  <input
-                    type="email"
-                    required
-                    autoComplete="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    className="mt-2 w-full rounded-md border border-gold-400/30 px-3 py-3 font-sans font-normal outline-none focus:border-gold-500"
-                  />
-                </label>
-                <label className="block text-left text-sm font-medium text-gold-900">
-                  Phone
-                  <input
-                    type="tel"
-                    required
-                    inputMode="numeric"
-                    autoComplete="tel"
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    className="mt-2 w-full rounded-md border border-gold-400/30 px-3 py-3 font-sans font-normal outline-none focus:border-gold-500"
-                  />
-                </label>
-              </div>
-
-              {paymentError && <p className="mt-4 text-sm text-red-600">{paymentError}</p>}
-
-              <button
-                type="submit"
-                disabled={isStartingPayment}
-                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md bg-gold-600 px-5 py-3 text-sm font-semibold text-white hover:bg-gold-700 disabled:cursor-wait disabled:opacity-70"
-              >
-                {isStartingPayment && <LoaderCircle className="h-4 w-4 animate-spin" />}
-                {isStartingPayment ? "Please Wait" : "Proceed to Razorpay"}
-              </button>
-            </motion.form>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ══════════════════════════════════════════════════════════════
           SECTION 1 — VIDEO
@@ -243,7 +116,7 @@ export default function Join() {
             className="text-center space-y-3"
           >
             <button
-              onClick={startPayment}
+              onClick={goToPayment}
               className="inline-flex items-center gap-2 px-10 py-4 bg-gold-500 hover:bg-gold-600 text-white rounded-full font-bold tracking-widest text-xs uppercase shadow-[0_10px_30px_rgba(197,145,84,0.35)] hover:shadow-[0_12px_36px_rgba(197,145,84,0.5)] transition-all duration-300 border border-gold-400 hover:scale-[1.03] group cursor-pointer"
             >
               <span>Join Now</span>
@@ -259,7 +132,6 @@ export default function Join() {
           SECTION 2 — HOW TO GET STARTED
       ══════════════════════════════════════════════════════════════ */}
       <section
-        ref={formRef}
         className="py-24 bg-white relative overflow-hidden border-t border-gold-subtle/30 scroll-mt-20"
       >
         <div className="absolute top-0 right-0 w-64 h-64 bg-gold-50/20 rounded-full blur-3xl pointer-events-none" />
@@ -327,7 +199,7 @@ export default function Join() {
             className="mt-16 text-center"
           >
             <button
-              onClick={startPayment}
+              onClick={goToPayment}
               className="inline-flex items-center gap-2 px-8 py-4 bg-gold-500 hover:bg-gold-600 text-white rounded-full font-bold tracking-widest text-xs uppercase shadow-[0_8px_24px_rgba(197,145,84,0.3)] hover:shadow-[0_10px_30px_rgba(197,145,84,0.45)] transition-all duration-300 border border-gold-400 hover:scale-[1.03] group cursor-pointer"
             >
               <span>Join Now</span>
@@ -408,3 +280,4 @@ export default function Join() {
     </div>
   );
  }
+
