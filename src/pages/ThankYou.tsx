@@ -32,6 +32,14 @@ export default function ThankYou() {
       const anyRazorpayParam = [...searchParams.keys()].some(k => k.startsWith("razorpay"));
       if (!anyRazorpayParam) {
         // Truly no params — redirect home
+        const paymentStarted = sessionStorage.getItem("paymentStarted") === "true";
+
+        if (paymentStarted) {
+          sessionStorage.removeItem("paymentStarted");
+          setStatus("verified");
+          return;
+        }
+
         navigate("/", { replace: true });
       } else {
         // Some params present but incomplete — show failed state

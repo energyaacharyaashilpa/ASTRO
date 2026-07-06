@@ -60,6 +60,7 @@ export default function Join() {
   }, [navigate]);
 
   const goToPayment = () => {
+    sessionStorage.setItem("paymentStarted", "true");
     window.location.href = PAYMENT_URL;
   };
 
