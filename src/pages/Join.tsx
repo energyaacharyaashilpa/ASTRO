@@ -6,7 +6,7 @@ import {
 
 import { reviews, TestimonialCard } from "../components/Testimonials";
 
-const PAYMENT_URL = "https://rzp.io/rzp/hIdhTnDl";
+const PAYMENT_URL = "https://rzp.io/rzp/t6jEgEDA";
 
 // ---------------------------------------------------------------------------
 // Types
