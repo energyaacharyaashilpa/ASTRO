@@ -1,8 +1,9 @@
-import  { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, HelpCircle, Plus, Minus,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import { reviews, TestimonialCard } from "../components/Testimonials";
 
@@ -45,11 +46,26 @@ const faqs = [
 // Component
 // ---------------------------------------------------------------------------
 export default function Join() {
+  const navigate = useNavigate();
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [hasAccess, setHasAccess] = useState(() => sessionStorage.getItem("leadFormSubmitted") === "true");
+
+  useEffect(() => {
+    const canAccessJoin = sessionStorage.getItem("leadFormSubmitted") === "true";
+    setHasAccess(canAccessJoin);
+
+    if (!canAccessJoin) {
+      navigate("/#lead-form", { replace: true });
+    }
+  }, [navigate]);
 
   const goToPayment = () => {
     window.location.href = PAYMENT_URL;
   };
+
+  if (!hasAccess) {
+    return null;
+  }
 
   return (
     <div className="relative bg-luxury-gradient overflow-hidden">

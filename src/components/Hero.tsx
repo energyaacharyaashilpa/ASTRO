@@ -28,9 +28,11 @@ export default function Hero() {
       body: formBody
     }).then(() => {
       // Proceed to join page after sending
+      sessionStorage.setItem("leadFormSubmitted", "true");
       navigate("/join");
     }).catch((err) => {
       console.error(err);
+      sessionStorage.setItem("leadFormSubmitted", "true");
       navigate("/join"); // Proceed anyway even if it fails
     }).finally(() => {
       setIsSubmitting(false);
@@ -69,7 +71,7 @@ export default function Hero() {
     </div>
   );
   return (
-    <section className="relative bg-luxury-gradient overflow-hidden mt-28 lg:mt-0">
+    <section id="lead-form" className="relative bg-luxury-gradient overflow-hidden mt-28 lg:mt-0 scroll-mt-28">
 
       {/* ─── MOBILE layout: stacked (img on top, text below) ─── */}
       <div className="lg:hidden flex flex-col min-h-screen">

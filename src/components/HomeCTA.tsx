@@ -59,7 +59,7 @@ export default function HomeCTA() {
         {/* Button CTA */}
         <div className="pt-4">
           <Link
-            to="/join"
+            to="/#lead-form"
             className="inline-flex items-center space-x-3 px-10 py-5 bg-gold-500 hover:bg-gold-600 text-white rounded-full font-bold tracking-widest text-xs uppercase shadow-[0_12px_35px_rgba(197,145,84,0.35)] hover:shadow-[0_15px_40px_rgba(197,145,84,0.5)] transition-all duration-300 border border-gold-400 hover:scale-[1.03] group cursor-pointer"
           >
             <span>Join Now</span>

@@ -16,12 +16,6 @@ export default function Navbar() {
             />
           </Link>
 
-          {/* Action CTA */}
-          <div className="flex items-center">
-            <Link to="/join" className="relative px-6 py-2.5 rounded-full text-xs font-semibold tracking-widest uppercase text-green-900 bg-gold-500 hover:bg-gold-400 transition-all duration-300 shadow-[0_4px_20px_rgba(184,146,63,0.4)] border border-gold-400">
-              <span className="relative z-10">Join Now</span>
-            </Link>
-          </div>
         </div>
       </div>
     </nav>
