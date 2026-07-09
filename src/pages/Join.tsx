@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 import { reviews, TestimonialCard } from "../components/Testimonials";
 
-const PAYMENT_URL = "https://rzp.io/rzp/t6jEgEDA";
+const PAYMENT_URL = "https://rzp.io/rzp/hIdhTnDl";
 
 // ---------------------------------------------------------------------------
 // Types
