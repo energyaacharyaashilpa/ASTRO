@@ -9,7 +9,7 @@ export default function Hero() {
   const [formData, setFormData] = useState({ name: "", email: "", phone: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleHeroSubmit = (e: React.FormEvent) => {
+  const handleHeroSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -22,21 +22,32 @@ export default function Hero() {
     // TODO: Replace this URL with your published Google Apps Script Web App URL
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwle0O4BkR0VU5ZxpXmo7T5m3-qIYYZuPHpY1cbFwL8xgNd9mOhZUX9AgrPM-__yvB76Q/exec";
 
-    fetch(GOOGLE_SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      body: formBody
-    }).then(() => {
-      // Proceed to join page after sending
+    try {
+      const sheetRequest = fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: formBody
+      });
+
+      const welcomeEmailRequest = fetch("/api/welcome-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const results = await Promise.allSettled([sheetRequest, welcomeEmailRequest]);
+      results.forEach((result) => {
+        if (result.status === "rejected") {
+          console.error(result.reason);
+        }
+      });
+
+      // Proceed anyway even if an external service is delayed or fails.
       sessionStorage.setItem("leadFormSubmitted", "true");
       navigate("/join");
-    }).catch((err) => {
-      console.error(err);
-      sessionStorage.setItem("leadFormSubmitted", "true");
-      navigate("/join"); // Proceed anyway even if it fails
-    }).finally(() => {
+    } finally {
       setIsSubmitting(false);
-    });
+    }
   };
 
   const renderForm = () => (

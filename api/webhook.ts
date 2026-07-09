@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { MongoClient } from "mongodb";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { sendThankYouEmail } from "./thank-you-email";
 
 // We MUST disable the body parser to get the exact raw body for signature verification
 export const config = {
@@ -58,6 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status: "webhook endpoint is live",
       hasMongoUri: Boolean(process.env.MONGODB_URI),
       hasWebhookSecret: Boolean(process.env.RAZORPAY_WEBHOOK_SECRET),
+      hasBrevoApiKey: Boolean(process.env.BREVO_API_KEY),
       dbName: process.env.MONGODB_DB_NAME || "astro",
     });
   }
@@ -177,6 +179,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
         { upsert: true }
       );
+
+      const verifiedPayment = await paymentsCollection.findOne({ paymentId });
+      if (email && !verifiedPayment?.thankYouEmailSentAt) {
+        const protocol =
+          typeof req.headers["x-forwarded-proto"] === "string"
+            ? req.headers["x-forwarded-proto"]
+            : "https";
+        const host =
+          typeof req.headers.host === "string" ? req.headers.host : "";
+        const siteUrl =
+          process.env.PUBLIC_SITE_URL ||
+          (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
+          (host ? `${protocol}://${host}` : "");
+
+        try {
+          await sendThankYouEmail({
+            email,
+            paymentId,
+            amount: payment?.amount,
+            currency: payment?.currency,
+            siteUrl,
+          });
+
+          await paymentsCollection.updateOne(
+            { paymentId },
+            {
+              $set: {
+                thankYouEmailSentAt: new Date(),
+                thankYouEmailStatus: "sent",
+              },
+              $unset: {
+                thankYouEmailError: "",
+              },
+            },
+          );
+        } catch (emailError) {
+          console.error("Thank-you email failed:", emailError);
+          await paymentsCollection.updateOne(
+            { paymentId },
+            {
+              $set: {
+                thankYouEmailStatus: "failed",
+                thankYouEmailError:
+                  emailError instanceof Error ? emailError.message : "Unknown email error",
+              },
+            },
+          );
+        }
+      }
 
       console.log(`Successfully verified Razorpay ${event}: ${paymentId}`);
     }
