@@ -35,6 +35,7 @@ export default function ThankYou() {
         const paymentStarted = sessionStorage.getItem("paymentStarted") === "true";
 
         if (paymentStarted) {
+          console.warn("[ThankYou] Payment returned without Razorpay params. Configure Razorpay callback params or webhook to save payment details.");
           sessionStorage.removeItem("paymentStarted");
           setStatus("verified");
           return;
@@ -65,10 +66,11 @@ export default function ThankYou() {
         });
 
         const res = await fetch(`/api/verify?${params.toString()}`);
+        const data = await res.json().catch(() => null);
+        console.log("[Verify] response:", res.status, data);
 
         if (res.status === 200) {
-          const data = await res.json();
-          if (data.verified && !cancelled) {
+          if (data?.verified && !cancelled) {
             setStatus("verified");
             return;
           }

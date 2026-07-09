@@ -79,6 +79,7 @@ export default function Join() {
         if (response.ok) {
           const data = await response.json();
           sessionStorage.setItem("paymentSession", JSON.stringify(data));
+          console.log("[Payment session] saved:", data);
         } else {
           console.error("Payment session failed:", await response.text());
         }

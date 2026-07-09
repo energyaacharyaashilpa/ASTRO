@@ -20,6 +20,9 @@ export default function Hero() {
       const errorBody = await response.text();
       throw new Error(`Welcome email failed with ${response.status}: ${errorBody}`);
     }
+
+    const data = await response.json();
+    console.log("[Lead] saved:", data);
   };
 
   const handleHeroSubmit = async (e: React.FormEvent) => {
