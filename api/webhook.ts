@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { MongoClient } from "mongodb";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { sendThankYouEmail } from "./thank-you-email";
+import { sendThankYouEmail } from "./thank-you-email.js";
 
 // We MUST disable the body parser to get the exact raw body for signature verification
 export const config = {
