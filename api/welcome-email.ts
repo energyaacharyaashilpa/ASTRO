@@ -126,6 +126,16 @@ async function sendWelcomeEmail(details: WelcomeEmailDetails) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method === "GET") {
+    return res.status(200).json({
+      status: "welcome email endpoint is live",
+      hasBrevoApiKey: Boolean(process.env.BREVO_API_KEY),
+      senderEmail: process.env.BREVO_SENDER_EMAIL || supportEmail,
+      senderName: process.env.BREVO_SENDER_NAME || "Energy Aacharyaa Shilpa",
+      siteUrl: buildSiteUrl(req),
+    });
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method Not Allowed" });
   }

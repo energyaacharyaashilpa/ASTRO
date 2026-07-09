@@ -9,6 +9,19 @@ export default function Hero() {
   const [formData, setFormData] = useState({ name: "", email: "", phone: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const sendWelcomeEmail = async () => {
+    const response = await fetch("/api/welcome-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`Welcome email failed with ${response.status}: ${errorBody}`);
+    }
+  };
+
   const handleHeroSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -29,11 +42,7 @@ export default function Hero() {
         body: formBody
       });
 
-      const welcomeEmailRequest = fetch("/api/welcome-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      const welcomeEmailRequest = sendWelcomeEmail();
 
       const results = await Promise.allSettled([sheetRequest, welcomeEmailRequest]);
       results.forEach((result) => {
