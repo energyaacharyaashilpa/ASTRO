@@ -1,3 +1,5 @@
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+
 type PaymentEmailDetails = {
   email: string;
   paymentId: string;
@@ -144,4 +146,17 @@ export async function sendThankYouEmail(details: PaymentEmailDetails) {
     const errorBody = await response.text();
     throw new Error(`Brevo email failed with ${response.status}: ${errorBody}`);
   }
+}
+
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ message: "Method Not Allowed" });
+  }
+
+  return res.status(200).json({
+    status: "thank-you email helper is live",
+    hasBrevoApiKey: Boolean(process.env.BREVO_API_KEY),
+    senderEmail: process.env.BREVO_SENDER_EMAIL || supportEmail,
+    senderName: process.env.BREVO_SENDER_NAME || "Energy Aacharyaa Shilpa",
+  });
 }
