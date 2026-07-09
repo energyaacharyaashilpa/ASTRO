@@ -1,3 +1,4 @@
+import nodemailer from "nodemailer";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 type PaymentEmailDetails = {
@@ -8,143 +9,127 @@ type PaymentEmailDetails = {
   siteUrl: string;
 };
 
+const supportEmail = "energyaacharyaashilpa@gmail.com";
 const formUrl =
   "https://docs.google.com/forms/d/1aGIs97cCdXON5-ihwaVQjZBlLLn9P7Li_odu6FFKge0/edit";
-const supportEmail = "energyaacharyaashilpa@gmail.com";
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
 
 function formatAmount(amount?: number, currency?: string) {
   if (typeof amount !== "number" || !Number.isFinite(amount)) return "";
-
-  const majorAmount = amount / 100;
-  const safeCurrency = currency || "INR";
-
+  const major = amount / 100;
   try {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: safeCurrency,
+      currency: currency || "INR",
       maximumFractionDigits: 2,
-    }).format(majorAmount);
+    }).format(major);
   } catch {
-    return `${safeCurrency} ${majorAmount.toFixed(2)}`;
+    return `${currency || "INR"} ${major.toFixed(2)}`;
   }
 }
 
-function buildHtmlEmail(details: PaymentEmailDetails) {
-  const paymentId = escapeHtml(details.paymentId);
+function buildHtml(details: PaymentEmailDetails) {
   const amount = formatAmount(details.amount, details.currency);
-  const logoUrl = `${details.siteUrl.replace(/\/$/, "")}/astro2.png`;
+  const logoUrl = `${details.siteUrl.replace(/\/$/, "")}/astro.png`;
 
   return `<!doctype html>
 <html>
-  <body style="margin:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#222222;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;padding:24px 12px;">
+<body style="margin:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#222222;">
+<table width="100%" cellspacing="0" cellpadding="0" style="background:#f4f9f6;padding:24px 12px;">
+  <tr><td align="center">
+    <table width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border:1px solid #d0e8da;border-radius:12px;overflow:hidden;">
       <tr>
-        <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border:1px solid #eeeeee;">
-            <tr>
-              <td align="center" style="padding:24px 24px 8px;">
-                <img src="${logoUrl}" alt="Energy Aacharyaa Shilpa" width="170" style="display:block;width:170px;max-width:80%;height:auto;margin:0 auto;" />
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:18px 28px 8px;">
-                <h1 style="margin:0 0 16px;color:#166534;font-size:24px;line-height:1.3;">Payment received</h1>
-                <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333333;">Thank you for booking your Astro Vastu consultation.</p>
-                <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333333;">Payment ID: <strong>${paymentId}</strong></p>
-                ${amount ? `<p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333333;">Amount: <strong>${escapeHtml(amount)}</strong></p>` : ""}
-                <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333333;">Next step: <a href="${formUrl}" style="color:#166534;font-weight:bold;">fill this application form</a>.</p>
-                <p style="margin:0;font-size:15px;line-height:1.7;color:#333333;">Regards,<br>Energy Aacharyaa Shilpa</p>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:18px 28px 26px;">
-                <p style="margin:0;color:#777777;font-size:13px;line-height:1.6;">Questions? Email <a href="mailto:${supportEmail}" style="color:#166534;">${supportEmail}</a></p>
-              </td>
-            </tr>
+        <td align="center" style="background:#0D2E23;padding:24px;">
+          <img src="${logoUrl}" alt="Energy Aacharyaa Shilpa" width="160" style="display:block;height:auto;max-width:80%;" />
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:28px 32px 8px;">
+          <h1 style="margin:0 0 12px;color:#0D2E23;font-size:22px;">Payment Confirmed ✅</h1>
+          <p style="margin:0 0 12px;font-size:15px;line-height:1.7;color:#333;">Thank you for booking your Astro Vastu consultation with <strong>Energy Aacharyaa Shilpa</strong>.</p>
+          <table style="background:#f4f9f6;border:1px solid #c8ddd3;border-radius:8px;padding:16px;width:100%;margin-bottom:16px;">
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;">Payment ID</td><td style="font-size:13px;font-family:monospace;color:#0D2E23;font-weight:bold;">${details.paymentId}</td></tr>
+            ${amount ? `<tr><td style="font-size:13px;color:#555;padding:4px 0;">Amount</td><td style="font-size:13px;color:#0D2E23;font-weight:bold;">${amount}</td></tr>` : ""}
           </table>
+          <h2 style="margin:16px 0 10px;color:#0D2E23;font-size:17px;">Here's what to do next:</h2>
+          <ol style="margin:0 0 16px;padding-left:20px;font-size:14px;line-height:2;color:#333;">
+            <li><a href="${formUrl}" style="color:#2D6B55;font-weight:bold;">Click here to fill out the short application form</a> — be honest with your answers.</li>
+            <li>Check your email for the application form. If it went to spam, move it to Primary.</li>
+            <li>Our team will review and respond within <strong>48 business hours</strong>.</li>
+          </ol>
+          <p style="font-size:13px;color:#666;margin:0 0 20px;">If we are unable to take your case, a full refund will be issued within 7 days.</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="background:#0D2E23;padding:16px 32px;text-align:center;">
+          <p style="margin:0;color:#9DC2B2;font-size:12px;">Questions? <a href="mailto:${supportEmail}" style="color:#C9A968;">${supportEmail}</a></p>
+          <p style="margin:6px 0 0;color:#4A8870;font-size:11px;">– Energy Aacharyaa Shilpa</p>
         </td>
       </tr>
     </table>
-  </body>
+  </td></tr>
+</table>
+</body>
 </html>`;
 }
 
-function buildTextEmail(details: PaymentEmailDetails) {
+function buildText(details: PaymentEmailDetails) {
   const amount = formatAmount(details.amount, details.currency);
-
   return [
-    "One more step to go!",
+    "Payment Confirmed ✅",
     "",
-    "Thank you for showing your interest in the Astro Vastu Analysis!",
+    "Thank you for booking your Astro Vastu consultation with Energy Aacharyaa Shilpa.",
     "",
-    `Payment Verified: ${details.paymentId}`,
-    amount ? `Amount: ${amount}` : "",
+    `Payment ID : ${details.paymentId}`,
+    amount ? `Amount     : ${amount}` : "",
     "",
     "Here's what to do next:",
     `1) Fill out the short application: ${formUrl}`,
     "2) Check your email. If it went to spam, move it to Primary.",
-    "3) Our team will review your answers and get back to you within 48 business hours.",
+    "3) Our team will review and respond within 48 business hours.",
     "",
-    "If we are unable to take your case, a refund will be issued within 7 days of the review result.",
+    "If we are unable to take your case, a refund will be issued within 7 days.",
     "",
-    `Questions? Email ${supportEmail}`,
+    `Questions? ${supportEmail}`,
     "",
-    "- Energy Aacharyaa Shilpa",
-  ]
-    .filter(Boolean)
-    .join("\n");
+    "– Energy Aacharyaa Shilpa",
+  ].filter(l => l !== undefined).join("\n");
+}
+
+function createTransporter() {
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+
+  if (!user || !pass) {
+    throw new Error("GMAIL_USER and GMAIL_APP_PASSWORD must be set");
+  }
+
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: { user, pass },
+  });
 }
 
 export async function sendThankYouEmail(details: PaymentEmailDetails) {
-  const apiKey = process.env.BREVO_API_KEY;
-  if (!apiKey) {
-    throw new Error("BREVO_API_KEY is not configured");
-  }
+  const transporter = createTransporter();
+  const from = `"Energy Aacharyaa Shilpa" <${process.env.GMAIL_USER}>`;
 
-  const senderEmail = process.env.BREVO_SENDER_EMAIL || supportEmail;
-  const senderName = process.env.BREVO_SENDER_NAME || "Energy Aacharyaa Shilpa";
-
-  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "api-key": apiKey,
-    },
-    body: JSON.stringify({
-      sender: { name: senderName, email: senderEmail },
-      to: [{ email: details.email }],
-      replyTo: { email: supportEmail, name: senderName },
-      subject: "Payment verified - Astro Vastu Analysis",
-      htmlContent: buildHtmlEmail(details),
-      textContent: buildTextEmail(details),
-    }),
+  await transporter.sendMail({
+    from,
+    to: details.email,
+    replyTo: supportEmail,
+    subject: "Payment Confirmed — Energy Aacharyaa Shilpa",
+    html: buildHtml(details),
+    text: buildText(details),
   });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Brevo email failed with ${response.status}: ${errorBody}`);
-  }
 }
 
+// Diagnostic endpoint: GET /api/thank-you-email
 export default function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ message: "Method Not Allowed" });
-  }
-
+  if (req.method !== "GET") return res.status(405).json({ message: "Method Not Allowed" });
   return res.status(200).json({
-    status: "thank-you email helper is live",
-    hasBrevoApiKey: Boolean(process.env.BREVO_API_KEY),
-    senderEmail: process.env.BREVO_SENDER_EMAIL || supportEmail,
-    senderName: process.env.BREVO_SENDER_NAME || "Energy Aacharyaa Shilpa",
+    status: "thank-you email helper is live (Gmail SMTP)",
+    hasGmailUser: Boolean(process.env.GMAIL_USER),
+    hasGmailAppPassword: Boolean(process.env.GMAIL_APP_PASSWORD),
+    gmailUser: process.env.GMAIL_USER || "not set",
   });
 }

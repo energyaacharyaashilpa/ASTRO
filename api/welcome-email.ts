@@ -1,3 +1,4 @@
+import nodemailer from "nodemailer";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { MongoClient } from "mongodb";
 
@@ -111,35 +112,20 @@ function buildTextEmail(details: WelcomeEmailDetails) {
 }
 
 async function sendWelcomeEmail(details: WelcomeEmailDetails) {
-  const apiKey = process.env.BREVO_API_KEY;
-  if (!apiKey) {
-    throw new Error("BREVO_API_KEY is not configured");
-  }
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  if (!user || !pass) throw new Error("GMAIL_USER and GMAIL_APP_PASSWORD must be set");
 
-  const senderEmail = process.env.BREVO_SENDER_EMAIL || supportEmail;
-  const senderName = process.env.BREVO_SENDER_NAME || "Energy Aacharyaa Shilpa";
+  const transporter = nodemailer.createTransport({ service: "gmail", auth: { user, pass } });
 
-  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "api-key": apiKey,
-    },
-    body: JSON.stringify({
-      sender: { name: senderName, email: senderEmail },
-      to: [{ email: details.email, name: details.name }],
-      replyTo: { email: supportEmail, name: senderName },
-      subject: "Welcome to Energy Aacharyaa Shilpa",
-      htmlContent: buildHtmlEmail(details),
-      textContent: buildTextEmail(details),
-    }),
+  await transporter.sendMail({
+    from: `"Energy Aacharyaa Shilpa" <${user}>`,
+    to: details.email,
+    replyTo: supportEmail,
+    subject: "Welcome to Energy Aacharyaa Shilpa",
+    html: buildHtmlEmail(details),
+    text: buildTextEmail(details),
   });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Brevo email failed with ${response.status}: ${errorBody}`);
-  }
 }
 
 async function saveLead(details: WelcomeEmailDetails) {
@@ -190,10 +176,9 @@ async function saveLead(details: WelcomeEmailDetails) {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "GET") {
     return res.status(200).json({
-      status: "welcome email endpoint is live",
-      hasBrevoApiKey: Boolean(process.env.BREVO_API_KEY),
-      senderEmail: process.env.BREVO_SENDER_EMAIL || supportEmail,
-      senderName: process.env.BREVO_SENDER_NAME || "Energy Aacharyaa Shilpa",
+      status: "welcome email endpoint is live (Gmail SMTP)",
+      hasGmailUser: Boolean(process.env.GMAIL_USER),
+      hasGmailAppPassword: Boolean(process.env.GMAIL_APP_PASSWORD),
       siteUrl: buildSiteUrl(req),
     });
   }
