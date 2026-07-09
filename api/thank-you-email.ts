@@ -41,45 +41,33 @@ function formatAmount(amount?: number, currency?: string) {
 function buildHtmlEmail(details: PaymentEmailDetails) {
   const paymentId = escapeHtml(details.paymentId);
   const amount = formatAmount(details.amount, details.currency);
-  const logoUrl = `${details.siteUrl.replace(/\/$/, "")}/astro.png`;
+  const logoUrl = `${details.siteUrl.replace(/\/$/, "")}/astro2.png`;
 
   return `<!doctype html>
 <html>
-  <body style="margin:0;background:#f8f3e7;font-family:Arial,Helvetica,sans-serif;color:#3b2a12;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8f3e7;padding:28px 12px;">
+  <body style="margin:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#222222;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;padding:24px 12px;">
       <tr>
         <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;background:#fffdf8;border:1px solid #d9bd75;border-radius:18px;overflow:hidden;box-shadow:0 12px 34px rgba(80,58,20,0.12);">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border:1px solid #eeeeee;">
             <tr>
-              <td align="center" style="padding:34px 28px 18px;">
-                <img src="${logoUrl}" alt="Energy Aacharyaa Shilpa" width="150" style="display:block;width:150px;max-width:70%;height:auto;margin:0 auto 20px;" />
-                <h1 style="margin:0;color:#a57924;font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:1.18;">One more step to go!</h1>
-                <p style="margin:16px 0 0;color:#6c5429;font-size:18px;line-height:1.55;">Thank you for showing your interest in the Astro Vastu Analysis!</p>
+              <td align="center" style="padding:24px 24px 8px;">
+                <img src="${logoUrl}" alt="Energy Aacharyaa Shilpa" width="170" style="display:block;width:170px;max-width:80%;height:auto;margin:0 auto;" />
               </td>
             </tr>
             <tr>
-              <td style="padding:0 28px 20px;">
-                <div style="background:#ecf9ee;border:1px solid #bfe7c8;border-radius:14px;padding:14px 16px;color:#176b31;">
-                  <div style="font-weight:700;font-size:15px;">Payment Verified</div>
-                  <div style="font-family:Consolas,Monaco,monospace;font-size:13px;margin-top:4px;">${paymentId}</div>
-                  ${amount ? `<div style="font-size:13px;margin-top:4px;">Amount: ${escapeHtml(amount)}</div>` : ""}
-                </div>
+              <td style="padding:18px 28px 8px;">
+                <h1 style="margin:0 0 16px;color:#166534;font-size:24px;line-height:1.3;">Payment received</h1>
+                <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333333;">Thank you for booking your Astro Vastu consultation.</p>
+                <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333333;">Payment ID: <strong>${paymentId}</strong></p>
+                ${amount ? `<p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333333;">Amount: <strong>${escapeHtml(amount)}</strong></p>` : ""}
+                <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333333;">Next step: <a href="${formUrl}" style="color:#166534;font-weight:bold;">fill this application form</a>.</p>
+                <p style="margin:0;font-size:15px;line-height:1.7;color:#333333;">Regards,<br>Energy Aacharyaa Shilpa</p>
               </td>
             </tr>
             <tr>
-              <td style="padding:0 28px 22px;">
-                <div style="background:#fbf6e8;border:1px solid #ead49b;border-radius:14px;padding:22px;text-align:left;">
-                  <p style="margin:0 0 16px;color:#7f5d16;font-family:Georgia,'Times New Roman',serif;font-size:19px;font-weight:700;">Here's what to do next:</p>
-                  <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#5f4a25;">1) <a href="${formUrl}" style="color:#b98723;font-weight:700;">Click here</a> to fill out the short application. Be honest with your answers as per your current situation.</p>
-                  <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#5f4a25;">2) Check your email. We have sent you the application form. If it went to spam, move it to Primary.</p>
-                  <p style="margin:0;font-size:15px;line-height:1.7;color:#5f4a25;">3) Our team will review your answers and get back to you within 48 business hours.</p>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td align="center" style="padding:0 28px 34px;">
-                <p style="margin:0 0 18px;color:#7a683f;font-size:14px;line-height:1.65;">If we are unable to take your case, a refund will be issued within 7 days of the review result.</p>
-                <p style="margin:0;color:#7a683f;font-size:14px;line-height:1.65;">Questions? Email <a href="mailto:${supportEmail}" style="color:#b98723;">${supportEmail}</a><br><br>- Energy Aacharyaa Shilpa</p>
+              <td style="padding:18px 28px 26px;">
+                <p style="margin:0;color:#777777;font-size:13px;line-height:1.6;">Questions? Email <a href="mailto:${supportEmail}" style="color:#166534;">${supportEmail}</a></p>
               </td>
             </tr>
           </table>

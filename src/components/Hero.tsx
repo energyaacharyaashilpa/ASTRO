@@ -53,6 +53,7 @@ export default function Hero() {
 
       // Proceed anyway even if an external service is delayed or fails.
       sessionStorage.setItem("leadFormSubmitted", "true");
+      sessionStorage.setItem("leadFormData", JSON.stringify(formData));
       navigate("/join");
     } finally {
       setIsSubmitting(false);

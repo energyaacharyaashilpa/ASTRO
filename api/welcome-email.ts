@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { MongoClient } from "mongodb";
 
 type WelcomeEmailDetails = {
   name: string;
@@ -8,6 +9,26 @@ type WelcomeEmailDetails = {
 };
 
 const supportEmail = "energyaacharyaashilpa@gmail.com";
+
+let cachedClient: MongoClient | null = null;
+
+async function connectToDatabase() {
+  if (cachedClient) return cachedClient;
+
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error("MONGODB_URI is not configured");
+  }
+
+  const client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000 });
+  await client.connect();
+  cachedClient = client;
+  return client;
+}
+
+function normalizeContact(value: string) {
+  return value.replace(/\D/g, "").slice(-10);
+}
 
 function escapeHtml(value: string) {
   return value
@@ -25,8 +46,12 @@ function buildSiteUrl(req: VercelRequest) {
       : "https";
   const host = typeof req.headers.host === "string" ? req.headers.host : "";
 
+  const publicSiteUrl = process.env.PUBLIC_SITE_URL || "";
+  const usablePublicSiteUrl =
+    publicSiteUrl && !publicSiteUrl.includes("your-domain.com") ? publicSiteUrl : "";
+
   return (
-    process.env.PUBLIC_SITE_URL ||
+    usablePublicSiteUrl ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
     (host ? `${protocol}://${host}` : "")
   );
@@ -34,39 +59,31 @@ function buildSiteUrl(req: VercelRequest) {
 
 function buildHtmlEmail(details: WelcomeEmailDetails) {
   const name = escapeHtml(details.name || "there");
-  const phone = escapeHtml(details.phone);
   const logoUrl = `${details.siteUrl.replace(/\/$/, "")}/astro2.png`;
 
   return `<!doctype html>
 <html>
-  <body style="margin:0;background:#f8f3e7;font-family:Arial,Helvetica,sans-serif;color:#3b2a12;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8f3e7;padding:28px 12px;">
+  <body style="margin:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#222222;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;padding:24px 12px;">
       <tr>
         <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;background:#fffdf8;border:1px solid #d9bd75;border-radius:18px;overflow:hidden;box-shadow:0 12px 34px rgba(80,58,20,0.12);">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border:1px solid #eeeeee;">
             <tr>
-              <td align="center" style="padding:34px 28px 18px;background:#166534;">
-                <img src="${logoUrl}" alt="Energy Aacharyaa Shilpa" width="190" style="display:block;width:190px;max-width:82%;height:auto;margin:0 auto;" />
+              <td align="center" style="padding:24px 24px 8px;">
+                <img src="${logoUrl}" alt="Energy Aacharyaa Shilpa" width="170" style="display:block;width:170px;max-width:80%;height:auto;margin:0 auto;" />
               </td>
             </tr>
             <tr>
-              <td align="center" style="padding:30px 28px 18px;">
-                <h1 style="margin:0;color:#a57924;font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:1.18;">Welcome, ${name}!</h1>
-                <p style="margin:16px 0 0;color:#6c5429;font-size:17px;line-height:1.6;">Thank you for sharing your details for Astro Vastu guidance. We have received your request and our team will connect with you shortly.</p>
+              <td style="padding:18px 28px 8px;">
+                <h1 style="margin:0 0 16px;color:#166534;font-size:24px;line-height:1.3;">Welcome, ${name}</h1>
+                <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333333;">Thank you for sharing your details for Astro Vastu guidance.</p>
+                <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333333;">Our team has received your request and will connect with you shortly.</p>
+                <p style="margin:0;font-size:15px;line-height:1.7;color:#333333;">Regards,<br>Energy Aacharyaa Shilpa</p>
               </td>
             </tr>
             <tr>
-              <td style="padding:0 28px 24px;">
-                <div style="background:#fbf6e8;border:1px solid #ead49b;border-radius:14px;padding:20px;text-align:left;">
-                  <p style="margin:0 0 12px;color:#7f5d16;font-family:Georgia,'Times New Roman',serif;font-size:19px;font-weight:700;">Your details are with us</p>
-                  <p style="margin:0 0 10px;font-size:15px;line-height:1.7;color:#5f4a25;">Name: ${name}</p>
-                  <p style="margin:0;font-size:15px;line-height:1.7;color:#5f4a25;">Phone: ${phone}</p>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td align="center" style="padding:0 28px 34px;">
-                <p style="margin:0;color:#7a683f;font-size:14px;line-height:1.65;">Questions? Email <a href="mailto:${supportEmail}" style="color:#b98723;">${supportEmail}</a><br><br>- Energy Aacharyaa Shilpa</p>
+              <td style="padding:18px 28px 26px;">
+                <p style="margin:0;color:#777777;font-size:13px;line-height:1.6;">Questions? Email <a href="mailto:${supportEmail}" style="color:#166534;">${supportEmail}</a></p>
               </td>
             </tr>
           </table>
@@ -125,6 +142,51 @@ async function sendWelcomeEmail(details: WelcomeEmailDetails) {
   }
 }
 
+async function saveLead(details: WelcomeEmailDetails) {
+  const client = await connectToDatabase();
+  const db = client.db(process.env.MONGODB_DB_NAME || "astro");
+  const contact = normalizeContact(details.phone);
+  const now = new Date();
+
+  await db.collection("leads").updateOne(
+    { email: details.email },
+    {
+      $set: {
+        name: details.name,
+        email: details.email,
+        phone: details.phone,
+        contact,
+        source: "home_form",
+        updatedAt: now,
+      },
+      $setOnInsert: {
+        createdAt: now,
+      },
+    },
+    { upsert: true },
+  );
+
+  await db.collection("payments").updateOne(
+    {
+      email: details.email,
+      contact,
+      status: "pending",
+    },
+    {
+      $set: {
+        name: details.name,
+        phone: details.phone,
+        source: "home_form",
+        updatedAt: now,
+      },
+      $setOnInsert: {
+        createdAt: now,
+      },
+    },
+    { upsert: true },
+  );
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "GET") {
     return res.status(200).json({
@@ -143,25 +205,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
   const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
   const phone = typeof req.body?.phone === "string" ? req.body.phone.trim() : "";
+  const contact = normalizeContact(phone);
 
-  if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !phone) {
-    return res.status(400).json({ message: "Enter a valid name, email and phone number" });
+  if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !/^\d{10}$/.test(contact)) {
+    return res.status(400).json({ message: "Enter a valid name, email and 10-digit phone number" });
   }
 
   try {
-    await sendWelcomeEmail({
+    const details = {
       name,
       email,
       phone,
       siteUrl: buildSiteUrl(req),
-    });
+    };
 
-    return res.status(200).json({ status: "sent" });
+    await saveLead(details);
+
+    try {
+      await sendWelcomeEmail(details);
+
+      return res.status(200).json({
+        status: "saved",
+        databaseStatus: "saved",
+        emailStatus: "sent",
+      });
+    } catch (emailError) {
+      console.error("Welcome email failed:", emailError);
+
+      return res.status(200).json({
+        status: "saved",
+        databaseStatus: "saved",
+        emailStatus: "failed",
+        emailError: emailError instanceof Error ? emailError.message : "Unknown email error",
+      });
+    }
   } catch (error) {
-    console.error("Welcome email failed:", error);
+    console.error("Lead save failed:", error);
     return res.status(500).json({
-      message: "Could not send welcome email",
-      detail: error instanceof Error ? error.message : "Unknown email error",
+      message: "Could not save lead",
+      detail: error instanceof Error ? error.message : "Unknown database error",
     });
   }
 }

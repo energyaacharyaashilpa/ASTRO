@@ -59,8 +59,34 @@ export default function Join() {
     }
   }, [navigate]);
 
-  const goToPayment = () => {
+  const goToPayment = async () => {
     sessionStorage.setItem("paymentStarted", "true");
+    const savedLead = sessionStorage.getItem("leadFormData");
+
+    if (savedLead) {
+      try {
+        const lead = JSON.parse(savedLead);
+        const response = await fetch("/api/payment-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: lead.name,
+            email: lead.email,
+            phone: lead.phone,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          sessionStorage.setItem("paymentSession", JSON.stringify(data));
+        } else {
+          console.error("Payment session failed:", await response.text());
+        }
+      } catch (error) {
+        console.error("Payment session failed:", error);
+      }
+    }
+
     window.location.href = PAYMENT_URL;
   };
 

@@ -101,9 +101,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const event = payload.event;
     console.log(`Received Razorpay webhook event: ${event}`);
 
-    if (event === "payment.captured") {
-      const payment = payload.payload?.payment?.entity;
-      const paymentId = payment?.id;
+    if (event === "payment.captured" || event === "payment_link.paid") {
+      const payment = payload.payload?.payment?.entity || payload.payload?.payment_link?.entity;
+      const paymentId = payment?.id || payment?.payment_id;
 
       if (!paymentId) {
         console.warn("Verified Razorpay webhook did not include a payment id");
@@ -124,11 +124,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         receivedAt: new Date(),
       });
 
+      const rawEmail = payment?.email || payment?.customer?.email;
       const email =
-        typeof payment?.email === "string" ? payment.email.trim().toLowerCase() : "";
+        typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
       const contact =
-        typeof payment?.contact === "string"
-          ? payment.contact.replace(/\D/g, "").slice(-10)
+        typeof (payment?.contact || payment?.customer?.contact) === "string"
+          ? (payment.contact || payment.customer.contact).replace(/\D/g, "").slice(-10)
           : "";
       const existingPayment = await paymentsCollection.findOne({ paymentId });
       let paymentFilter: Record<string, unknown> = { paymentId };
@@ -188,8 +189,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             : "https";
         const host =
           typeof req.headers.host === "string" ? req.headers.host : "";
+        const publicSiteUrl = process.env.PUBLIC_SITE_URL || "";
+        const usablePublicSiteUrl =
+          publicSiteUrl && !publicSiteUrl.includes("your-domain.com") ? publicSiteUrl : "";
         const siteUrl =
-          process.env.PUBLIC_SITE_URL ||
+          usablePublicSiteUrl ||
           (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
           (host ? `${protocol}://${host}` : "");
 

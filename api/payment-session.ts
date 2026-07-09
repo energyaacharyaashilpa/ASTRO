@@ -26,6 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
   const contact =
     typeof req.body?.phone === "string" ? normalizeContact(req.body.phone) : "";
 
@@ -42,15 +43,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const client = await connectToDatabase();
     const db = client.db(process.env.MONGODB_DB_NAME || "astro");
 
-    await db.collection("payments").insertOne({
-      email,
-      contact,
-      verificationTokenHash,
-      status: "pending",
-      source: "hosted_payment_page",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    await db.collection("payments").updateOne(
+      {
+        email,
+        contact,
+        status: "pending",
+      },
+      {
+        $set: {
+          name,
+          verificationTokenHash,
+          source: "hosted_payment_page",
+          updatedAt: new Date(),
+        },
+        $setOnInsert: {
+          createdAt: new Date(),
+        },
+      },
+      { upsert: true },
+    );
 
     return res.status(201).json({ email, phone: contact, verificationToken });
   } catch (error) {
