@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { motion } from "framer-motion";
 
-import heroImg from "../assets/heroimg.png";
+import heroImg from "../assets/img.png";
 
 export default function Hero() {
   const navigate = useNavigate();
@@ -63,12 +63,17 @@ export default function Hero() {
     }
   };
 
-  const renderForm = () => (
+  const renderForm = (placement: "mobile" | "desktop") => (
     <div className="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl border border-gold-400/30 w-full max-w-sm shadow-xl mb-8 ml-2 sm:ml-6 md:ml-12 lg:ml-16 xl:ml-20">
       <p className="text-[11px] font-bold text-gold-600 uppercase tracking-widest mb-4 text-center">
         Book Your Session Now
       </p>
-      <form onSubmit={handleHeroSubmit} className="flex flex-col gap-4">
+      <form
+        id={`home-lead-form-${placement}`}
+        data-meta-target="home-lead-form"
+        onSubmit={handleHeroSubmit}
+        className="flex flex-col gap-4"
+      >
         <input
           type="text" name="name" placeholder="Name" required
           className="w-full px-4 py-3 rounded-xl bg-gold-50/10 border border-gold-400/20 text-gold-950 focus:outline-none focus:ring-1 focus:ring-gold-400 text-sm font-light"
@@ -85,11 +90,13 @@ export default function Hero() {
           value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
         />
         <button
+          id={`home-enquiry-form-submit-${placement}`}
+          data-meta-target="home-enquiry-form-submit"
           type="submit"
           disabled={isSubmitting}
           className="mt-2 w-full py-4 bg-gold-500 text-white font-bold tracking-widest uppercase text-xs rounded-full shadow-[0_8px_20px_rgba(197,145,84,0.3)] hover:scale-[1.02] active:scale-95 transition-all duration-200 border border-gold-400 hover:bg-gold-600 cursor-pointer disabled:opacity-70 disabled:cursor-wait flex justify-center"
         >
-          {isSubmitting ? "Processing..." : "Join Now"}
+          {isSubmitting ? "Processing..." : "Enquiry Now"}
         </button>
       </form>
     </div>
@@ -117,7 +124,7 @@ export default function Hero() {
         {/* Text and Form — below image */}
         <div className="flex-1 flex flex-col justify-start px-6 pt-6 pb-16">
           <div className="flex flex-col items-center sm:items-start">
-            {renderForm()}
+            {renderForm("mobile")}
           </div>
 
           <h1 className="font-serif text-3xl sm:text-4xl text-gold-900 leading-[1.15] tracking-wide mb-4">
@@ -156,7 +163,7 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="flex flex-row items-center gap-3"
           >
-            {renderForm()}
+            {renderForm("desktop")}
           </motion.div>
 
           <motion.h1
